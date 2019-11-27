@@ -3,7 +3,6 @@
 namespace SzamlaAgent\Response;
 
 use SzamlaAgent\Document\Document;
-use SzamlaAgent\Log;
 use SzamlaAgent\SzamlaAgent;
 use SzamlaAgent\SzamlaAgentException;
 use SzamlaAgent\Request\Request;

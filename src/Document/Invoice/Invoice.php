@@ -6,7 +6,6 @@ use SzamlaAgent\Document\Document;
 use SzamlaAgent\Header\InvoiceHeader;
 use SzamlaAgent\Item\InvoiceItem;
 use SzamlaAgent\CreditNote\InvoiceCreditNote;
-use SzamlaAgent\Log;
 use SzamlaAgent\Waybill\Waybill;
 use SzamlaAgent\Buyer;
 use SzamlaAgent\Seller;
