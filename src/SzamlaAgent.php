@@ -542,7 +542,7 @@ class SzamlaAgent {
      * @return string
      */
     public function getCertificationFile() {
-        return SzamlaAgentUtil::getAbsPath(self::CERTIFICATION_PATH, self::CERTIFICATION_FILENAME);
+        return Util::getAbsPath(self::CERTIFICATION_PATH, self::CERTIFICATION_FILENAME);
     }
 
     /**
