@@ -9,7 +9,7 @@ use SzamlaAgent\Response\SzamlaAgentResponse;
  *
  * @package SzamlaAgent
  */
-class SzamlaAgentSetting {
+class Setting {
 
     /**
      * Alapértelmezett számlamásolatok darabszám

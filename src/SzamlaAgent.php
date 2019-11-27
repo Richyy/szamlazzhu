@@ -104,7 +104,7 @@ class SzamlaAgent {
     /**
      * Számla Agent beállítások
      *
-     * @var SzamlaAgentSetting
+     * @var Setting
      */
     private $setting;
 
@@ -144,7 +144,7 @@ class SzamlaAgent {
         
         $this->logger = $logger;
         
-        $this->setSetting(new SzamlaAgentSetting($username, $password, $apiKey, $downloadPdf, SzamlaAgentSetting::DOWNLOAD_COPIES_COUNT, $responseType, $aggregator));
+        $this->setSetting(new Setting($username, $password, $apiKey, $downloadPdf, Setting::DOWNLOAD_COPIES_COUNT, $responseType, $aggregator));
         
         $key = !empty($username) ? 'username' : 'api_key';
         $value = !empty($username) ? $username : $apiKey;
@@ -201,7 +201,7 @@ class SzamlaAgent {
         $agent = self::$agents[$index];
 
         if ($agent === null) {
-            if (strpos($instanceId, '@') === false && strlen($instanceId) == SzamlaAgentSetting::API_KEY_LENGTH) {
+            if (strpos($instanceId, '@') === false && strlen($instanceId) == Setting::API_KEY_LENGTH) {
                 throw new SzamlaAgentException(SzamlaAgentException::NO_AGENT_INSTANCE_WITH_APIKEY);
             } else {
                 throw new SzamlaAgentException(SzamlaAgentException::NO_AGENT_INSTANCE_WITH_USERNAME);
@@ -574,14 +574,14 @@ class SzamlaAgent {
     }
 
     /**
-     * @return SzamlaAgentSetting
+     * @return Setting
      */
     public function getSetting() {
         return $this->setting;
     }
 
     /**
-     * @param SzamlaAgentSetting $setting
+     * @param Setting $setting
      */
     public function setSetting($setting) {
         $this->setting = $setting;
