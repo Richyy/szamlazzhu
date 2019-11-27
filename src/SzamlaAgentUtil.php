@@ -262,7 +262,7 @@ class SzamlaAgentUtil {
                 $value = number_format((float)$value, 1, '.', '');
             }
         } else {
-            Log::writeLog("Helytelen típus! Double helyett " . gettype($value) . " típus ennél az értéknél: " . $value, Log::LOG_LEVEL_WARN);
+            trigger_error('Helytelen típus! Double helyett ' . gettype($value) . ' típus ennél az értéknél: ' . $value, E_USER_WARNING);
         }
         return $value;
     }

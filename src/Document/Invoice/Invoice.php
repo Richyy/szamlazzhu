@@ -371,7 +371,7 @@ class Invoice extends Document {
      */
     public function addAttachment($filePath) {
         if (empty($filePath)) {
-            Log::writeLog("A csatolandó fájl neve nincs megadva!", Log::LOG_LEVEL_WARN);
+            trigger_error('A csatolandó fájl neve nincs megadva!', E_USER_WARNING);
         } else {
             if (count($this->attachments) >= self::INVOICE_ATTACHMENTS_LIMIT) {
                 throw new SzamlaAgentException('A következő fájl csatolása sikertelen: "' . $filePath. '". Egy számlához maximum ' . self::INVOICE_ATTACHMENTS_LIMIT . ' fájl csatolható!');
