@@ -166,7 +166,7 @@ class SzamlaAgentResponse {
         if ($this->isFailed()) {
             throw new SzamlaAgentException( SzamlaAgentException::AGENT_ERROR . ": [{$this->getErrorCode()}], {$this->getErrorMsg()}");
         } else if ($this->isSuccess()) {
-            $agent->writeLog("Agent hívás sikeresen befejeződött.", Log::LOG_LEVEL_DEBUG);
+            $agent->getLogger()->debug('Agent hívás sikeresen befejeződött.');
 
             if ($this->isNotTaxPayerXmlResponse()) {
                 try {
@@ -183,10 +183,12 @@ class SzamlaAgentResponse {
                             $file = file_put_contents($this->getPdfFileName(), $pdfData);
 
                             if ($file !== false) {
-                                $agent->writeLog(SzamlaAgentException::PDF_FILE_SAVE_SUCCESS . ': ' . $this->getPdfFileName(), Log::LOG_LEVEL_DEBUG);
+                                $agent->getLogger()->debug(SzamlaAgentException::PDF_FILE_SAVE_SUCCESS, [
+                                    'pdf_filename' => $this->getPdfFileName(),
+                                ]);
                             } else {
                                 $errorMsg = SzamlaAgentException::PDF_FILE_SAVE_FAILED . ': ' . SzamlaAgentException::FILE_CREATION_FAILED;
-                                $agent->writeLog($errorMsg, Log::LOG_LEVEL_DEBUG);
+                                $agent->getLogger()->debug($errorMsg);
                                 throw new SzamlaAgentException($errorMsg);
                             }
                         }
@@ -194,7 +196,9 @@ class SzamlaAgentResponse {
                         $this->setContent($response['body']);
                     }
                 } catch (\Exception $e) {
-                    $agent->writeLog(SzamlaAgentException::PDF_FILE_SAVE_FAILED . ': ' . $e->getMessage(), Log::LOG_LEVEL_DEBUG);
+                    $agent->getLogger()->debug(SzamlaAgentException::PDF_FILE_SAVE_FAILED, [
+                        'exception' => $e->getMessage(),
+                    ]);
                     throw $e;
                 }
             }
@@ -247,7 +251,10 @@ class SzamlaAgentResponse {
 
         $fileName = SzamlaAgentUtil::getXmlFileName('response', $name . $postfix, $agent->getRequest()->getEntity());
         $xml->save($fileName);
-        $agent->writeLog("XML fájl mentése sikeres: " . SzamlaAgentUtil::getRealPath($fileName), Log::LOG_LEVEL_DEBUG);
+        
+        $agent->getLogger()->debug('XML fájl mentése sikeres', [
+            'xml_filepath' => SzamlaAgentUtil::getRealPath($fileName),
+        ]);
     }
 
     /**

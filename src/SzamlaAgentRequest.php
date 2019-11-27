@@ -214,7 +214,7 @@ class SzamlaAgentRequest {
      */
     private function buildXmlData() {
         $this->setXmlFileData($this->getType());
-        $this->getAgent()->writeLog("XML adatok összeállítása elkezdődött.", Log::LOG_LEVEL_DEBUG);
+        $this->agent->getLogger()->debug('XML adatok összeállítása elkezdődött.');
 
         $xmlData = $this->getEntity()->buildXmlData($this);
 
@@ -227,7 +227,7 @@ class SzamlaAgentRequest {
             $formatXml = SzamlaAgentUtil::formatXml($xml);
             $this->setXmlData($formatXml->saveXML());
 
-            $this->getAgent()->writeLog("XML adatok létrehozása kész.", Log::LOG_LEVEL_DEBUG);
+            $this->agent->getLogger()->debug('XML adatok létrehozása kész.');
             $this->createXmlFile($formatXml);
         } else {
             throw new SzamlaAgentException(SzamlaAgentException::XML_NOT_VALID . " a {$result[0]->line}. sorban: {$result[0]->message}. ");
@@ -275,7 +275,10 @@ class SzamlaAgentRequest {
         $xml->save($fileName);
 
         $this->setXmlFilePath(SzamlaAgentUtil::getRealPath($fileName));
-        $this->getAgent()->writeLog("XML fájl mentése sikeres: " . SzamlaAgentUtil::getRealPath($fileName), Log::LOG_LEVEL_DEBUG);
+        
+        $this->agent->getLogger()->debug('XML fájl mentése sikeres.', [
+            'file_path' => SzamlaAgentUtil::getRealPath($fileName),
+        ]);
     }
 
     /**
@@ -511,11 +514,12 @@ class SzamlaAgentRequest {
 
                 if ($code == self::HTTP_OK) {
                     $_SESSION[$type] = $this->getConnectionModeName(self::CALL_METHOD_CURL);
-                    $agent->writeLog("A kapcsolódás típusa beállítva a következőre: CURL.", Log::LOG_LEVEL_DEBUG);
+                    
+                    $agent->getLogger()->debug('A kapcsolódás típusa beállítva a következőre: CURL');
                     return $this->makeCurlCall();
                 } else {
                     $_SESSION[$type] = $this->getConnectionModeName(self::CALL_METHOD_LEGACY);
-                    $agent->writeLog("A kapcsolódás típusa beállítva a következőre: LEGACY, mert a CURL nem használható.", Log::LOG_LEVEL_WARN);
+                    $agent->getLogger()->warn('A kapcsolódás típusa beállítva a következőre: LEGACY, mert a CURL nem használható.');
                     return $this->makeLegacyCall();
                 }
             } catch (\Exception $e) {
@@ -568,7 +572,10 @@ class SzamlaAgentRequest {
                             foreach ($postFields as $field) {
                                 if ($field->name === $attachments[$i]) {
                                     $isAttachable = false;
-                                    $agent->writeLog($attachCount . ". számlamelléklet már csatolva van: " . $attachments[$i], Log::LOG_LEVEL_WARN);
+                                    $agent->getLogger()->warn('A számlamelléklet már csatolva van.', [
+                                        'attachment_count' => $attachCount,
+                                        'attachment' => $attachments[$i],
+                                    ]);
                                 }
                             }
 
@@ -576,7 +583,11 @@ class SzamlaAgentRequest {
                                 $attachment = new \CURLFile($attachments[$i]);
                                 $attachment->setPostFilename(basename($attachments[$i]));
                                 $postFields["attachfile" . $attachCount] = $attachment;
-                                $agent->writeLog($attachCount . ". számlamelléklet csatolva: " . $attachments[$i], Log::LOG_LEVEL_DEBUG);
+
+                                $agent->getLogger()->debug('Számlamelléklet csatolva.', [
+                                    'attachment_count' => $attachCount,
+                                    'attachment' => $attachments[$i],
+                                ]);
                             }
                         }
                     }
@@ -590,7 +601,7 @@ class SzamlaAgentRequest {
                 $cookieFile = $this->getCookieFilePath();
                 if (file_exists($cookieFile) && filesize($cookieFile > 0 && strpos(file_get_contents($cookieFile),'curl') === false)) {
                     file_put_contents($cookieFile, "");
-                    $agent->writeLog("A cookie fájl tartalma megváltozott.", Log::LOG_LEVEL_DEBUG);
+                    $agent->getLogger()->debug('A cookie fájl tartalma megváltozott.');
                 }
                 curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
 
@@ -599,7 +610,7 @@ class SzamlaAgentRequest {
                 }
             }
 
-            $agent->writeLog("CURL adatok elküldése elkezdődött: " . $this->getPostFields(), Log::LOG_LEVEL_DEBUG);
+            $agent->getLogger()->debug('CURL adatok elküldése elkezdődött.', $this->getPostFields());
             $result = curl_exec($ch);
 
             $headerSize = curl_getinfo($ch,CURLINFO_HEADER_SIZE);
@@ -624,7 +635,9 @@ class SzamlaAgentRequest {
                 }
 
                 $response['headers']['Schema-Type'] = $this->getXmlSchemaType();
-                $agent->writeLog("CURL adatok elküldése sikeresen befejeződött: " . print_r($msg, TRUE), Log::LOG_LEVEL_DEBUG);
+                $agent->getLogger()->debug('CURL adatok elküldése sikeresen befejeződött.', [
+                    'response' => $msg,
+                ]);
             }
             curl_close($ch);
 
@@ -664,7 +677,8 @@ class SzamlaAgentRequest {
                 )
             ));
 
-            $agent->writeLog("LEGACY adatok elküldése elkezdődött: " . self::CRLF . $this->getPostFields(), Log::LOG_LEVEL_DEBUG);
+            $agent->getLogger()->debug('LEGACY adatok elküldése elkezdődött.', $this->getPostFields());
+            
             $body = file_get_contents(SzamlaAgent::API_URL, false, $context);
 
             foreach ($http_response_header as $header) {
@@ -685,18 +699,20 @@ class SzamlaAgentRequest {
                 $msg = $response;
             }
             $response['headers']['Schema-Type'] = $this->getXmlSchemaType();
-            $agent->writeLog("LEGACY adatok elküldése befejeződött: " . print_r($msg, TRUE), Log::LOG_LEVEL_DEBUG);
+            $agent->getLogger()->debug('LEGACY adatok elküldése befejeződött.', [
+                'response' => $msg
+            ]);
 
             if (isset($cookieFile) && isset($cookies['JSESSIONID'])) {
                 if (file_exists($cookieFile) && filesize($cookieFile) > 0 && strpos(file_get_contents($cookieFile),'curl') !== false) {
                     file_put_contents($cookieFile, serialize($cookies));
-                    $agent->writeLog("Cookie tartalma megváltozott.", Log::LOG_LEVEL_DEBUG);
+                    $agent->getLogger()->debug('Cookie tartalma megváltozott.');
                 } elseif (file_exists($cookieFile) && filesize($cookieFile) > 0 && strpos(file_get_contents($cookieFile),'curl') === false && ($stored_cookies != $cookies)) {
                     file_put_contents($cookieFile, serialize($cookies));
-                    $agent->writeLog("Cookie tartalma megváltozott.", Log::LOG_LEVEL_DEBUG);
+                    $agent->getLogger()->debug('Cookie tartalma megváltozott.');
                 } elseif (file_exists($cookieFile) && filesize($cookieFile) == 0) {
                     file_put_contents($cookieFile, serialize($cookies));
-                    $agent->writeLog("Cookie tartalma megváltozott.", Log::LOG_LEVEL_DEBUG);
+                    $agent->getLogger()->debug('Cookie tartalma megváltozott.');
                 }
             }
             return $response;

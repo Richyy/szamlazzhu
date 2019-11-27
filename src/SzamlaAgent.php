@@ -2,6 +2,7 @@
 
 namespace SzamlaAgent;
 
+use Psr\Log\LoggerInterface;
 use SzamlaAgent\Document\Document;
 use SzamlaAgent\Document\DeliveryNote;
 use SzamlaAgent\Document\Proforma;
@@ -73,24 +74,11 @@ class SzamlaAgent {
     const ATTACHMENTS_SAVE_PATH = './attachments';
 
     /**
-     * Naplózási szint
+     * PSR kompatibilis Logger
      *
-     * 0: LOG_LEVEL_OFF   - nincs naplózás
-     * 1: LOG_LEVEL_ERROR - hibák naplózása
-     * 2: LOG_LEVEL_WARN  - hibák és figyelmeztetések naplózása
-     * 3: LOG_LEVEL_DEBUG - minden típus naplózása (fejlesztői mód)
-     *
-     * @var int
+     * @var LoggerInterface
      */
-    private $logLevel;
-
-    /**
-     * Naplózási e-mail cím
-     * Erre az e-mail címre küldünk üzenetet, ha hiba esemény történik
-     *
-     * @var string
-     */
-    private $logEmail = '';
+    private $logger;
 
     /**
      * Számla Agent kérés módja
@@ -146,36 +134,43 @@ class SzamlaAgent {
     /**
      * Számla Agent létrehozása
      *
-     * @param string $username     e-mail cím vagy bejelentkezési név
-     * @param string $password     jelszó
-     * @param string $apiKey       Számla Agent kulcs
-     * @param bool   $downloadPdf  szeretnénk-e letölteni a bizonylatot PDF formátumban
-     * @param int    $logLevel     naplózási szint
-     * @param int    $responseType válasz típusa (szöveges vagy XML)
-     * @param string $aggregator   webáruházat futtató motor neve
+     * @param string            $username       e-mail cím vagy bejelentkezési név
+     * @param string            $password       jelszó
+     * @param string|null       $apiKey         Számla Agent kulcs
+     * @param bool              $downloadPdf    szeretnénk-e letölteni a bizonylatot PDF formátumban
+     * @param LoggerInterface   $logger         Logger service
+     * @param int               $responseType   válasz típusa (szöveges vagy XML)
+     * @param string            $aggregator     webáruházat futtató motor neve
      *
      * @throws SzamlaAgentException
      */
-    protected function __construct($username, $password, $apiKey, $downloadPdf, $logLevel = Log::LOG_LEVEL_DEBUG,  $responseType = SzamlaAgentResponse::RESULT_AS_TEXT, $aggregator = '') {
+    protected function __construct($username, $password, $apiKey, $downloadPdf, LoggerInterface $logger,  $responseType = SzamlaAgentResponse::RESULT_AS_TEXT, $aggregator = '') {
+        
+        $this->logger = $logger;
+        
         $this->setSetting(new SzamlaAgentSetting($username, $password, $apiKey, $downloadPdf, SzamlaAgentSetting::DOWNLOAD_COPIES_COUNT, $responseType, $aggregator));
-        $this->setLogLevel($logLevel);
-        $this->writeLog("Számla Agent inicializálása kész (" . (!empty($username) ? 'username: ' . $username : 'apiKey: ' . $apiKey) . ").", Log::LOG_LEVEL_DEBUG);
+        
+        $key = !empty($username) ? 'username' : 'api_key';
+        $value = !empty($username) ? $username : $apiKey;
+        $this->logger->debug('Számla Agent inicializálása kész', [
+            $key => $value,
+        ]);
     }
 
     /**
      * Számla Agent létrehozása (felhasználónév és jelszóval)
      *
-     * @param string $username    e-mail cím vagy bejelentkezési név
-     * @param string $password    jelszó
-     * @param bool   $downloadPdf szeretnénk-e letölteni a bizonylatot PDF formátumban
-     * @param int    $logLevel    naplózási szint
+     * @param string            $username    e-mail cím vagy bejelentkezési név
+     * @param string            $password    jelszó
+     * @param bool              $downloadPdf szeretnénk-e letölteni a bizonylatot PDF formátumban
+     * @param LoggerInterface   $logger      Logger service
      *
      * @return SzamlaAgent
      * @throws SzamlaAgentException
      *
      * @deprecated 2.5 Nem ajánlott a használata, helyette SzamlaAgentAPI::create($apiKey);
      */
-    public static function create($username, $password, $downloadPdf = true, $logLevel = Log::LOG_LEVEL_DEBUG) {
+    public static function create($username, $password, $downloadPdf = true, LoggerInterface $logger) {
         $index = self::getHash($username);
 
         $agent = null;
@@ -184,7 +179,7 @@ class SzamlaAgent {
         }
 
         if ($agent === null) {
-            return self::$agents[$index] = new self($username, $password, null, $downloadPdf, $logLevel);
+            return self::$agents[$index] = new self($username, $password, null, $downloadPdf, $logger);
         } else {
             return $agent;
         }
@@ -194,7 +189,7 @@ class SzamlaAgent {
      * @throws SzamlaAgentException
      */
     function __destruct() {
-        $this->writeLog("Számla Agent műveletek befejezve." . PHP_EOL . str_repeat("_",80) . PHP_EOL, Log::LOG_LEVEL_DEBUG);
+        $this->logger->debug('Számla Agent műveletek befejezve');
     }
 
     /**
@@ -368,7 +363,7 @@ class SzamlaAgent {
 
         if ($this->getResponseType() !== SzamlaAgentResponse::RESULT_AS_XML) {
             $msg = 'Helytelen beállítási kísérlet a számla adatok lekérdezésénél: Számla adatok letöltéséhez a kérésre adott válasznak xml formátumúnak kell lennie!';
-            $this->writeLog($msg, Log::LOG_LEVEL_WARN);
+            $this->logger->warn($msg);
         }
 
         $this->setDownloadPdf($downloadPdf);
@@ -398,7 +393,7 @@ class SzamlaAgent {
 
         if (!$this->isDownloadPdf()) {
             $msg = 'Helytelen beállítási kísérlet a számla PDF lekérdezésénél: Számla letöltéshez a "downloadPdf" paraméternek "true"-nak kell lennie!';
-            $this->writeLog($msg, Log::LOG_LEVEL_WARN);
+            $this->logger->warn($msg);
         }
         $this->setDownloadPdf(true);
         return $this->generateDocument('requestInvoicePDF', $invoice);
@@ -519,63 +514,10 @@ class SzamlaAgent {
     }
 
     /**
-     * @param string $message
-     * @param int    $type
-     *
-     * @return bool
-     * @throws SzamlaAgentException
-     */
-    public function writeLog($message, $type = Log::LOG_LEVEL_DEBUG) {
-        if ($this->logLevel < $type) {
-            return false;
-        }
-
-        if ($this->logLevel != Log::LOG_LEVEL_OFF) {
-            Log::writeLog($message, $type, $this->logEmail);
-        }
-        return true;
-    }
-
-    /**
-     * @param $message
-     *
-     * @throws SzamlaAgentException
-     */
-    public function logError($message) {
-        $this->writeLog($message, Log::LOG_LEVEL_ERROR);
-    }
-
-    /**
      * @return string
      */
     public function getApiVersion() {
         return self::API_VERSION;
-    }
-
-    /**
-     * Visszaadja a naplózási szintet
-     *
-     * @return int
-     */
-    public function getLogLevel() {
-        return $this->logLevel;
-    }
-
-    /**
-     * Beállítja a naplózási szintet
-     *
-     * 0: LOG_LEVEL_OFF   - nincs naplózás
-     * 1: LOG_LEVEL_ERROR - hibák naplózása
-     * 2: LOG_LEVEL_WARN  - hibák és figyelmeztetések naplózása
-     * 3: LOG_LEVEL_DEBUG - minden típus naplózása (fejlesztői mód)
-     *
-     * @var int
-     */
-    public function setLogLevel($logLevel) {
-        if (Log::isNotValidLogLevel($logLevel)) {
-            $logLevel = Log::LOG_LEVEL_DEBUG;
-        }
-        $this->logLevel = $logLevel;
     }
 
     /**
@@ -598,20 +540,6 @@ class SzamlaAgent {
      */
     public function setCallMethod($callMethod) {
         $this->callMethod = $callMethod;
-    }
-
-    /**
-     * @return string
-     */
-    public function getLogEmail() {
-        return $this->logEmail;
-    }
-
-    /**
-     * @param string $logEmail
-     */
-    public function setLogEmail($logEmail) {
-        $this->logEmail = $logEmail;
     }
 
     /**
@@ -855,4 +783,8 @@ class SzamlaAgent {
         $this->response = $response;
     }
 
+    public function getLogger() : LoggerInterface
+    {
+        return $this->logger;
+    }
 }
