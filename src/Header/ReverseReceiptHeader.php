@@ -3,7 +3,7 @@
 namespace SzamlaAgent\Header;
 
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Util;
 
 /**
  * Sztornó nyugta fejléc
@@ -46,7 +46,7 @@ class ReverseReceiptHeader extends ReceiptHeader {
                 case 'receiptNumber':
                 case 'pdfTemplate':
                 case 'callId':
-                    SzamlaAgentUtil::checkStrField($field, $value, $required, __CLASS__);
+                    Util::checkStrField($field, $value, $required, __CLASS__);
                     break;
             }
         }

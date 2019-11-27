@@ -3,7 +3,7 @@
 namespace SzamlaAgent\Ledger;
 
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Util;
 
 /**
  * Nyugtatétel főkönyvi adatok
@@ -36,7 +36,7 @@ class ReceiptItemLedger extends ItemLedger {
             switch ($field) {
                 case 'revenueLedgerNumber':
                 case 'vatLedgerNumber':
-                    SzamlaAgentUtil::checkStrField($field, $value, false, __CLASS__);
+                    Util::checkStrField($field, $value, false, __CLASS__);
                     break;
             }
         }
@@ -63,8 +63,8 @@ class ReceiptItemLedger extends ItemLedger {
         $data = [];
         $this->checkFields();
 
-        if (SzamlaAgentUtil::isNotBlank($this->getRevenueLedgerNumber())) $data['arbevetel'] = $this->getRevenueLedgerNumber();
-        if (SzamlaAgentUtil::isNotBlank($this->getVatLedgerNumber()))     $data['afa'] = $this->getVatLedgerNumber();
+        if (Util::isNotBlank($this->getRevenueLedgerNumber())) $data['arbevetel'] = $this->getRevenueLedgerNumber();
+        if (Util::isNotBlank($this->getVatLedgerNumber()))     $data['afa'] = $this->getVatLedgerNumber();
 
         return $data;
     }

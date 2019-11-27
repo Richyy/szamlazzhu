@@ -5,8 +5,8 @@ namespace SzamlaAgent\Header;
 use SzamlaAgent\Document\Document;
 use SzamlaAgent\Document\Invoice\Invoice;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
 use SzamlaAgent\Request\Request;
+use SzamlaAgent\Util;
 
 /**
  * Sztornó számla fejléc
@@ -47,10 +47,10 @@ class ReverseInvoiceHeader extends InvoiceHeader {
             switch ($field) {
                 case 'issueDate':
                 case 'fulfillment':
-                    SzamlaAgentUtil::checkDateField($field, $value, $required, __CLASS__);
+                    Util::checkDateField($field, $value, $required, __CLASS__);
                     break;
                 case 'invoiceNumber':
-                    SzamlaAgentUtil::checkStrField($field, $value, $required, __CLASS__);
+                    Util::checkStrField($field, $value, $required, __CLASS__);
                     break;
             }
         }

@@ -4,7 +4,7 @@ namespace SzamlaAgent\Waybill;
 
 use SzamlaAgent\Request\Request;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Util;
 
 /**
  * MPL fuvarlevél
@@ -87,13 +87,13 @@ class MPLWaybill extends Waybill {
             $required = in_array($field, $this->getRequiredFields());
             switch ($field) {
                 case 'insuredValue':
-                    SzamlaAgentUtil::checkDoubleField($field, $value, $required, __CLASS__);
+                    Util::checkDoubleField($field, $value, $required, __CLASS__);
                     break;
                 case 'buyerCode':
                 case 'weight':
                 case 'service':
                 case 'shippingTime':
-                    SzamlaAgentUtil::checkStrField($field, $value, $required, __CLASS__);
+                    Util::checkStrField($field, $value, $required, __CLASS__);
                     break;
             }
         }
@@ -115,12 +115,12 @@ class MPLWaybill extends Waybill {
         $data['mpl']['vonalkod'] = $this->getBarcode();
         $data['mpl']['tomeg'] = $this->getWeight();
 
-        if (SzamlaAgentUtil::isNotBlank($this->getService())) {
+        if (Util::isNotBlank($this->getService())) {
             $data['mpl']['kulonszolgaltatasok'] = $this->getService();
         }
 
-        if (SzamlaAgentUtil::isNotNull($this->getInsuredValue())) {
-            $data['mpl']['erteknyilvanitas'] = SzamlaAgentUtil::doubleFormat($this->getInsuredValue());
+        if (Util::isNotNull($this->getInsuredValue())) {
+            $data['mpl']['erteknyilvanitas'] = Util::doubleFormat($this->getInsuredValue());
         }
 
         return $data;

@@ -3,8 +3,8 @@
 namespace SzamlaAgent\Header;
 
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
 use SzamlaAgent\Request\Request;
+use SzamlaAgent\Util;
 
 /**
  * Díjbekérő fejléc
@@ -49,8 +49,8 @@ class ProformaHeader extends InvoiceHeader {
             $data = [];
             switch ($request->getXmlName()) {
                 case $request::XML_SCHEMA_DELETE_PROFORMA:
-                    if (SzamlaAgentUtil::isNotBlank($this->getInvoiceNumber())) $data["szamlaszam"] = $this->getInvoiceNumber();
-                    if (SzamlaAgentUtil::isNotBlank($this->getOrderNumber())) $data["rendelesszam"] = $this->getOrderNumber();
+                    if (Util::isNotBlank($this->getInvoiceNumber())) $data["szamlaszam"] = $this->getInvoiceNumber();
+                    if (Util::isNotBlank($this->getOrderNumber())) $data["rendelesszam"] = $this->getOrderNumber();
                     $this->checkFields();
                     break;
                 default:

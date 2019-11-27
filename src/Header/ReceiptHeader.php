@@ -4,8 +4,8 @@ namespace SzamlaAgent\Header;
 
 use SzamlaAgent\Document\Document;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
 use SzamlaAgent\Request\Request;
+use SzamlaAgent\Util;
 
 /**
  * Nyugta fejléc
@@ -134,7 +134,7 @@ class ReceiptHeader extends DocumentHeader {
             $required = in_array($field, $this->getRequiredFields());
             switch ($field) {
                 case 'exchangeRate':
-                    SzamlaAgentUtil::checkDoubleField($field, $value, $required, __CLASS__);
+                    Util::checkDoubleField($field, $value, $required, __CLASS__);
                     break;
                 case 'receiptNumber':
                 case 'callId':
@@ -145,7 +145,7 @@ class ReceiptHeader extends DocumentHeader {
                 case 'comment':
                 case 'pdfTemplate':
                 case 'buyerLedgerId':
-                    SzamlaAgentUtil::checkStrField($field, $value, $required, __CLASS__);
+                    Util::checkStrField($field, $value, $required, __CLASS__);
                     break;
             }
         }
@@ -224,15 +224,15 @@ class ReceiptHeader extends DocumentHeader {
 
         foreach ($fields as $key) {
             switch ($key) {
-                case 'hivasAzonosito': $value = (SzamlaAgentUtil::isNotBlank($this->getCallId())) ? $this->getCallId() : null; break;
+                case 'hivasAzonosito': $value = (Util::isNotBlank($this->getCallId())) ? $this->getCallId() : null; break;
                 case 'elotag':         $value = $this->getPrefix(); break;
                 case 'fizmod':         $value = $this->getPaymentMethod(); break;
                 case 'penznem':        $value = $this->getCurrency(); break;
-                case 'devizabank':     $value = (SzamlaAgentUtil::isNotBlank($this->getExchangeBank())) ? $this->getExchangeBank() : null; break;
-                case 'devizaarf':      $value = (SzamlaAgentUtil::isNotNull($this->getExchangeRate())) ? SzamlaAgentUtil::doubleFormat($this->getExchangeRate()) : null; break;
-                case 'megjegyzes':     $value = (SzamlaAgentUtil::isNotBlank($this->getComment())) ? $this->getComment() : null; break;
-                case 'pdfSablon':      $value = (SzamlaAgentUtil::isNotBlank($this->getPdfTemplate())) ? $this->getPdfTemplate() : null; break;
-                case 'fokonyvVevo':    $value = (SzamlaAgentUtil::isNotBlank($this->getBuyerLedgerId())) ? $this->getBuyerLedgerId() : null; break;
+                case 'devizabank':     $value = (Util::isNotBlank($this->getExchangeBank())) ? $this->getExchangeBank() : null; break;
+                case 'devizaarf':      $value = (Util::isNotNull($this->getExchangeRate())) ? Util::doubleFormat($this->getExchangeRate()) : null; break;
+                case 'megjegyzes':     $value = (Util::isNotBlank($this->getComment())) ? $this->getComment() : null; break;
+                case 'pdfSablon':      $value = (Util::isNotBlank($this->getPdfTemplate())) ? $this->getPdfTemplate() : null; break;
+                case 'fokonyvVevo':    $value = (Util::isNotBlank($this->getBuyerLedgerId())) ? $this->getBuyerLedgerId() : null; break;
                 case 'nyugtaszam':     $value = $this->getReceiptNumber(); break;
                 default:
                     throw new SzamlaAgentException(SzamlaAgentException::XML_KEY_NOT_EXISTS . ": {$key}");

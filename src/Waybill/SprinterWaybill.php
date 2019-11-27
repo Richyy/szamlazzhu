@@ -4,7 +4,7 @@ namespace SzamlaAgent\Waybill;
 
 use SzamlaAgent\Request\Request;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Util;
 
 /**
  * Sprinter fuvarlevél
@@ -81,14 +81,14 @@ class SprinterWaybill extends Waybill {
         if (property_exists($this, $field)) {
             switch ($field) {
                 case 'packetNumber':
-                    SzamlaAgentUtil::checkIntField($field, $value, false, __CLASS__);
+                    Util::checkIntField($field, $value, false, __CLASS__);
                     break;
                 case 'id':
                 case 'senderId':
                 case 'shipmentZip':
                 case 'barcodePostfix':
                 case 'shippingTime':
-                    SzamlaAgentUtil::checkStrField($field, $value, false, __CLASS__);
+                    Util::checkStrField($field, $value, false, __CLASS__);
                     break;
             }
         }
@@ -106,12 +106,12 @@ class SprinterWaybill extends Waybill {
         $data = parent::buildXmlData($request);
 
         $data['sprinter'] = [];
-        if (SzamlaAgentUtil::isNotBlank($this->getId()))             $data['sprinter']['azonosito'] = $this->getId();
-        if (SzamlaAgentUtil::isNotBlank($this->getSenderId()))       $data['sprinter']['feladokod'] = $this->getSenderId();
-        if (SzamlaAgentUtil::isNotBlank($this->getShipmentZip()))    $data['sprinter']['iranykod'] = $this->getShipmentZip();
-        if (SzamlaAgentUtil::isNotNull($this->getPacketNumber()))    $data['sprinter']['csomagszam'] = $this->getPacketNumber();
-        if (SzamlaAgentUtil::isNotBlank($this->getBarcodePostfix())) $data['sprinter']['vonalkodPostfix'] = $this->getBarcodePostfix();
-        if (SzamlaAgentUtil::isNotBlank($this->getShippingTime()))   $data['sprinter']['szallitasiIdo'] = $this->getShippingTime();
+        if (Util::isNotBlank($this->getId()))             $data['sprinter']['azonosito'] = $this->getId();
+        if (Util::isNotBlank($this->getSenderId()))       $data['sprinter']['feladokod'] = $this->getSenderId();
+        if (Util::isNotBlank($this->getShipmentZip()))    $data['sprinter']['iranykod'] = $this->getShipmentZip();
+        if (Util::isNotNull($this->getPacketNumber()))    $data['sprinter']['csomagszam'] = $this->getPacketNumber();
+        if (Util::isNotBlank($this->getBarcodePostfix())) $data['sprinter']['vonalkodPostfix'] = $this->getBarcodePostfix();
+        if (Util::isNotBlank($this->getShippingTime()))   $data['sprinter']['szallitasiIdo'] = $this->getShippingTime();
 
         return $data;
     }

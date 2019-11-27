@@ -29,7 +29,7 @@ class SimpleXMLExtended extends \SimpleXMLElement {
      */
     public function addChildWithCData($name = '', $value = '') {
         $newChild = parent::addChild($name);
-        if (SzamlaAgentUtil::isNotBlank($value)) {
+        if (Util::isNotBlank($value)) {
             $this->addCDataToNode($newChild, $value);
         }
         return $newChild;

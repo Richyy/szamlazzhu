@@ -123,10 +123,10 @@ class TaxPayer {
             $required = in_array($field, $this->getRequiredFields());
             switch ($field) {
                 case 'taxPayerType':
-                    SzamlaAgentUtil::checkIntField($field, $value, $required, __CLASS__);
+                    Util::checkIntField($field, $value, $required, __CLASS__);
                     break;
                 case 'taxPayerId':
-                    SzamlaAgentUtil::checkStrFieldWithRegExp($field, $value, false, __CLASS__, '/[0-9]{8}/');
+                    Util::checkStrFieldWithRegExp($field, $value, false, __CLASS__, '/[0-9]{8}/');
                     break;
             }
         }

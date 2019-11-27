@@ -4,7 +4,7 @@ namespace SzamlaAgent\Item;
 
 use SzamlaAgent\Ledger\InvoiceItemLedger;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Util;
 
 /**
  * Számlatétel
@@ -43,28 +43,28 @@ class InvoiceItem extends Item {
 
         $data['megnevezes']       = $this->getName();
 
-        if (SzamlaAgentUtil::isNotBlank($this->getId())){
+        if (Util::isNotBlank($this->getId())){
             $data['azonosito']    = $this->getId();
         }
 
-        $data['mennyiseg']        = SzamlaAgentUtil::doubleFormat($this->getQuantity());
+        $data['mennyiseg']        = Util::doubleFormat($this->getQuantity());
         $data['mennyisegiEgyseg'] = $this->getQuantityUnit();
-        $data['nettoEgysegar']    = SzamlaAgentUtil::doubleFormat($this->getNetUnitPrice());
+        $data['nettoEgysegar']    = Util::doubleFormat($this->getNetUnitPrice());
         $data['afakulcs']         = $this->getVat();
 
-        if (SzamlaAgentUtil::isNotNull($this->getPriceGapVatBase())) {
-            $data['arresAfaAlap'] = SzamlaAgentUtil::doubleFormat($this->getPriceGapVatBase());
+        if (Util::isNotNull($this->getPriceGapVatBase())) {
+            $data['arresAfaAlap'] = Util::doubleFormat($this->getPriceGapVatBase());
         }
 
-        $data['nettoErtek']       = SzamlaAgentUtil::doubleFormat($this->getNetPrice());
-        $data['afaErtek']         = SzamlaAgentUtil::doubleFormat($this->getVatAmount());
-        $data['bruttoErtek']      = SzamlaAgentUtil::doubleFormat($this->getGrossAmount());
+        $data['nettoErtek']       = Util::doubleFormat($this->getNetPrice());
+        $data['afaErtek']         = Util::doubleFormat($this->getVatAmount());
+        $data['bruttoErtek']      = Util::doubleFormat($this->getGrossAmount());
 
-        if (SzamlaAgentUtil::isNotBlank($this->getComment())) {
+        if (Util::isNotBlank($this->getComment())) {
             $data['megjegyzes']   = $this->getComment();
         }
 
-        if (SzamlaAgentUtil::isNotNull($this->getLedgerData())) {
+        if (Util::isNotNull($this->getLedgerData())) {
             $data['tetelFokonyv']     = $this->getLedgerData()->buildXmlData();
         }
         return $data;

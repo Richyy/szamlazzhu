@@ -11,8 +11,8 @@ use SzamlaAgent\Waybill\Waybill;
 use SzamlaAgent\Buyer;
 use SzamlaAgent\Seller;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
 use SzamlaAgent\Request\Request;
+use SzamlaAgent\Util;
 
 /**
  * Számla
@@ -298,9 +298,9 @@ class Invoice extends Document {
                     case 'beallitasok': $value = $request->getAgent()->getSetting()->buildXmlData($request); break;
                     case 'fejlec':      $value = $this->getHeader()->buildXmlData($request); break;
                     case 'tetelek':     $value = $this->buildXmlItemsData(); break;
-                    case 'elado':       $value = (SzamlaAgentUtil::isNotNull($this->getSeller()))  ? $this->getSeller()->buildXmlData($request)  : array(); break;
-                    case 'vevo':        $value = (SzamlaAgentUtil::isNotNull($this->getBuyer()))   ? $this->getBuyer()->buildXmlData($request)   : array(); break;
-                    case 'fuvarlevel':  $value = (SzamlaAgentUtil::isNotNull($this->getWaybill())) ? $this->getWaybill()->buildXmlData($request) : array(); break;
+                    case 'elado':       $value = (Util::isNotNull($this->getSeller()))  ? $this->getSeller()->buildXmlData($request)  : array(); break;
+                    case 'vevo':        $value = (Util::isNotNull($this->getBuyer()))   ? $this->getBuyer()->buildXmlData($request)   : array(); break;
+                    case 'fuvarlevel':  $value = (Util::isNotNull($this->getWaybill())) ? $this->getWaybill()->buildXmlData($request) : array(); break;
                     default:
                         throw new SzamlaAgentException(SzamlaAgentException::XML_KEY_NOT_EXISTS . ": {$key}");
                 }

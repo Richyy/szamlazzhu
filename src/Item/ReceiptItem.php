@@ -4,7 +4,7 @@ namespace SzamlaAgent\Item;
 
 use SzamlaAgent\Ledger\ReceiptItemLedger;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Util;
 
 /**
  * Nyugtatétel
@@ -43,19 +43,19 @@ class ReceiptItem extends Item {
 
         $data['megnevezes']       = $this->getName();
 
-        if (SzamlaAgentUtil::isNotBlank($this->getId())) {
+        if (Util::isNotBlank($this->getId())) {
             $data['azonosito']    = $this->getId();
         }
 
-        $data['mennyiseg']        = SzamlaAgentUtil::doubleFormat($this->getQuantity());
+        $data['mennyiseg']        = Util::doubleFormat($this->getQuantity());
         $data['mennyisegiEgyseg'] = $this->getQuantityUnit();
-        $data['nettoEgysegar']    = SzamlaAgentUtil::doubleFormat($this->getNetUnitPrice());
+        $data['nettoEgysegar']    = Util::doubleFormat($this->getNetUnitPrice());
         $data['afakulcs']         = $this->getVat();
-        $data['netto']            = SzamlaAgentUtil::doubleFormat($this->getNetPrice());
-        $data['afa']              = SzamlaAgentUtil::doubleFormat($this->getVatAmount());
-        $data['brutto']           = SzamlaAgentUtil::doubleFormat($this->getGrossAmount());
+        $data['netto']            = Util::doubleFormat($this->getNetPrice());
+        $data['afa']              = Util::doubleFormat($this->getVatAmount());
+        $data['brutto']           = Util::doubleFormat($this->getGrossAmount());
 
-        if (SzamlaAgentUtil::isNotNull($this->getLedgerData())) {
+        if (Util::isNotNull($this->getLedgerData())) {
             $data['fokonyv']      = $this->getLedgerData()->buildXmlData();
         }
 

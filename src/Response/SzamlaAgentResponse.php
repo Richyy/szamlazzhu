@@ -6,8 +6,8 @@ use SzamlaAgent\Document\Document;
 use SzamlaAgent\Log;
 use SzamlaAgent\SzamlaAgent;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
 use SzamlaAgent\Request\Request;
+use SzamlaAgent\Util;
 
 /**
  * A Számla Agent választ kezelő osztály
@@ -137,7 +137,7 @@ class SzamlaAgentResponse {
         if (isset($response['headers']) && !empty($response['headers'])) {
             $headers = $response['headers'];
 
-            if (isset($headers['szlahu_down']) && SzamlaAgentUtil::isNotBlank($headers['szlahu_down'])) {
+            if (isset($headers['szlahu_down']) && Util::isNotBlank($headers['szlahu_down'])) {
                 throw new SzamlaAgentException(SzamlaAgentException::SYSTEM_DOWN, 500);
             }
         } else {
@@ -232,7 +232,7 @@ class SzamlaAgentResponse {
      */
     private function createXmlFile(\SimpleXMLElement $xml) {
         $agent  = $this->getAgent();
-        $xml    = SzamlaAgentUtil::formatXml($xml);
+        $xml    = Util::formatXml($xml);
         $type   = $agent->getResponseType();
 
         $name = '';
@@ -249,11 +249,11 @@ class SzamlaAgentResponse {
                 throw new SzamlaAgentException(SzamlaAgentException::RESPONSE_TYPE_NOT_EXISTS . " ($type)");
         }
 
-        $fileName = SzamlaAgentUtil::getXmlFileName('response', $name . $postfix, $agent->getRequest()->getEntity());
+        $fileName = Util::getXmlFileName('response', $name . $postfix, $agent->getRequest()->getEntity());
         $xml->save($fileName);
         
         $agent->getLogger()->debug('XML fájl mentése sikeres', [
-            'xml_filepath' => SzamlaAgentUtil::getRealPath($fileName),
+            'xml_filepath' => Util::getRealPath($fileName),
         ]);
     }
 
@@ -264,7 +264,7 @@ class SzamlaAgentResponse {
      * @return bool|string
      */
     public function getPdfFileName() {
-        return SzamlaAgentUtil::getAbsPath(SzamlaAgent::PDF_FILE_SAVE_PATH, $this->getDocumentNumber() . '.pdf');
+        return Util::getAbsPath(SzamlaAgent::PDF_FILE_SAVE_PATH, $this->getDocumentNumber() . '.pdf');
     }
 
     /**

@@ -5,8 +5,8 @@ namespace SzamlaAgent\Header;
 use SzamlaAgent\Document\Document;
 use SzamlaAgent\Document\Invoice\Invoice;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
 use SzamlaAgent\Request\Request;
+use SzamlaAgent\Util;
 
 /**
  * Számla fejléc
@@ -205,7 +205,7 @@ class InvoiceHeader extends DocumentHeader {
         // Számla típusa (papír vagy e-számla)
         $this->setInvoiceType($type);
         // Számla kiállítás dátuma
-        $this->setIssueDate(SzamlaAgentUtil::getTodayStr());
+        $this->setIssueDate(Util::getTodayStr());
         // Számla fizetési módja (átutalás)
         $this->setPaymentMethod(Document::PAYMENT_METHOD_TRANSFER);
         // Számla pénzneme
@@ -213,9 +213,9 @@ class InvoiceHeader extends DocumentHeader {
         // Számla nyelve
         $this->setLanguage(Document::getDefaultLanguage());
         // Számla teljesítés dátuma
-        $this->setFulfillment(SzamlaAgentUtil::getTodayStr());
+        $this->setFulfillment(Util::getTodayStr());
         // Számla fizetési határideje
-        $this->setPaymentDue(SzamlaAgentUtil::addDaysToDate(SzamlaAgentUtil::DEFAULT_ADDED_DAYS));
+        $this->setPaymentDue(Util::addDaysToDate(Util::DEFAULT_ADDED_DAYS));
     }
 
     /**
@@ -234,11 +234,11 @@ class InvoiceHeader extends DocumentHeader {
                 case 'issueDate':
                 case 'fulfillment':
                 case 'paymentDue':
-                    SzamlaAgentUtil::checkDateField($field, $value, $required, __CLASS__);
+                    Util::checkDateField($field, $value, $required, __CLASS__);
                     break;
                 case 'exchangeRate':
                 case 'correctionToPay':
-                    SzamlaAgentUtil::checkDoubleField($field, $value, $required, __CLASS__);
+                    Util::checkDoubleField($field, $value, $required, __CLASS__);
                     break;
                 case 'proforma':
                 case 'deliveryNote':
@@ -248,7 +248,7 @@ class InvoiceHeader extends DocumentHeader {
                 case 'paid':
                 case 'profitVat':
                 case 'corrective':
-                    SzamlaAgentUtil::checkBoolField($field, $value, $required, __CLASS__);
+                    Util::checkBoolField($field, $value, $required, __CLASS__);
                     break;
                 case 'paymentMethod':
                 case 'currency':
@@ -259,7 +259,7 @@ class InvoiceHeader extends DocumentHeader {
                 case 'extraLogo':
                 case 'prefix':
                 case 'invoiceNumber':
-                    SzamlaAgentUtil::checkStrField($field, $value, $required, __CLASS__);
+                    Util::checkStrField($field, $value, $required, __CLASS__);
                     break;
             }
         }
@@ -309,26 +309,26 @@ class InvoiceHeader extends DocumentHeader {
                 "szamlaNyelve"          => $this->getLanguage()
             ];
 
-            if (SzamlaAgentUtil::isNotBlank($this->getComment()))           $data['megjegyzes'] = $this->getComment();
-            if (SzamlaAgentUtil::isNotBlank($this->getExchangeBank()))      $data['arfolyamBank'] = $this->getExchangeBank();
+            if (Util::isNotBlank($this->getComment()))           $data['megjegyzes'] = $this->getComment();
+            if (Util::isNotBlank($this->getExchangeBank()))      $data['arfolyamBank'] = $this->getExchangeBank();
 
-            if (SzamlaAgentUtil::isNotNull($this->getExchangeRate())) {
-                $data['arfolyam'] = SzamlaAgentUtil::doubleFormat($this->getExchangeRate());
+            if (Util::isNotNull($this->getExchangeRate())) {
+                $data['arfolyam'] = Util::doubleFormat($this->getExchangeRate());
             }
 
-            if (SzamlaAgentUtil::isNotBlank($this->getOrderNumber()))       $data['rendelesSzam'] = $this->getOrderNumber();
-            if (SzamlaAgentUtil::isNotBlank($this->getProformaNumber()))    $data['dijbekeroSzamlaszam'] = $this->getProformaNumber();
+            if (Util::isNotBlank($this->getOrderNumber()))       $data['rendelesSzam'] = $this->getOrderNumber();
+            if (Util::isNotBlank($this->getProformaNumber()))    $data['dijbekeroSzamlaszam'] = $this->getProformaNumber();
             if ($this->isPrePayment())                                      $data['elolegszamla']  = $this->isPrePayment();
             if ($this->isFinal())                                           $data['vegszamla']  = $this->isFinal();
             if ($this->isCorrective())                                      $data['helyesbitoszamla']  = $this->isCorrective();
-            if (SzamlaAgentUtil::isNotBlank($this->getCorrectivedNumber())) $data['helyesbitettSzamlaszam']  = $this->getCorrectivedNumber();
+            if (Util::isNotBlank($this->getCorrectivedNumber())) $data['helyesbitettSzamlaszam']  = $this->getCorrectivedNumber();
             if ($this->isProforma())                                        $data['dijbekero']  = $this->isProforma();
             if ($this->isDeliveryNote())                                    $data['szallitolevel']  = $this->isDeliveryNote();
-            if (SzamlaAgentUtil::isNotBlank($this->getExtraLogo()))         $data['logoExtra']  = $this->getExtraLogo();
-            if (SzamlaAgentUtil::isNotBlank($this->getPrefix()))            $data['szamlaszamElotag']  = $this->getPrefix();
+            if (Util::isNotBlank($this->getExtraLogo()))         $data['logoExtra']  = $this->getExtraLogo();
+            if (Util::isNotBlank($this->getPrefix()))            $data['szamlaszamElotag']  = $this->getPrefix();
 
-            if (SzamlaAgentUtil::isNotNull($this->getCorrectionToPay()) && $this->getCorrectionToPay() !== 0) {
-                $data['fizetendoKorrekcio'] = SzamlaAgentUtil::doubleFormat($this->getCorrectionToPay());
+            if (Util::isNotNull($this->getCorrectionToPay()) && $this->getCorrectionToPay() !== 0) {
+                $data['fizetendoKorrekcio'] = Util::doubleFormat($this->getCorrectionToPay());
             }
 
             if ($this->isPaid())                                            $data['fizetve']  = $this->isPaid();

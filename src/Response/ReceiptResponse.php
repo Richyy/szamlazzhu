@@ -2,7 +2,7 @@
 
 namespace SzamlaAgent\Response;
 
-use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Util;
 
 /**
  * Egy nyugta típusú bizonylat kérésére adott választ reprezentáló osztály
@@ -146,7 +146,7 @@ class ReceiptResponse {
 
         if ($type == SzamlaAgentResponse::RESULT_AS_TEXT) {
             $params = $xmlData = new \SimpleXMLElement(base64_decode($data['body']));
-            $data = SzamlaAgentUtil::toArray($params);
+            $data = Util::toArray($params);
         }
 
         $base = [];

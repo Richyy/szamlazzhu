@@ -81,14 +81,14 @@ class BuyerLedger {
                 case 'bookingDate':
                 case 'settlementPeriodStart':
                 case 'settlementPeriodEnd':
-                    SzamlaAgentUtil::checkDateField($field, $value, false, __CLASS__);
+                    Util::checkDateField($field, $value, false, __CLASS__);
                     break;
                 case 'continuedFulfillment':
-                    SzamlaAgentUtil::checkBoolField($field, $value, false, __CLASS__);
+                    Util::checkBoolField($field, $value, false, __CLASS__);
                     break;
                 case 'buyerId':
                 case 'buyerLedgerNumber':
-                    SzamlaAgentUtil::checkStrField($field, $value, false, __CLASS__);
+                    Util::checkStrField($field, $value, false, __CLASS__);
                     break;
             }
         }
@@ -115,12 +115,12 @@ class BuyerLedger {
         $data = [];
         $this->checkFields();
 
-        if (SzamlaAgentUtil::isNotBlank($this->getBookingDate()))           $data['konyvelesDatum'] = $this->getBookingDate();
-        if (SzamlaAgentUtil::isNotBlank($this->getBuyerId()))               $data['vevoAzonosito'] = $this->getBuyerId();
-        if (SzamlaAgentUtil::isNotBlank($this->getBuyerLedgerNumber()))     $data['vevoFokonyviSzam'] = $this->getBuyerLedgerNumber();
+        if (Util::isNotBlank($this->getBookingDate()))           $data['konyvelesDatum'] = $this->getBookingDate();
+        if (Util::isNotBlank($this->getBuyerId()))               $data['vevoAzonosito'] = $this->getBuyerId();
+        if (Util::isNotBlank($this->getBuyerLedgerNumber()))     $data['vevoFokonyviSzam'] = $this->getBuyerLedgerNumber();
         if ($this->isContinuedFulfillment())                                $data['folyamatosTelj'] = $this->isContinuedFulfillment();
-        if (SzamlaAgentUtil::isNotBlank($this->getSettlementPeriodStart())) $data['elszDatumTol'] = $this->getSettlementPeriodStart();
-        if (SzamlaAgentUtil::isNotBlank($this->getSettlementPeriodEnd()))   $data['elszDatumIg'] = $this->getSettlementPeriodEnd();
+        if (Util::isNotBlank($this->getSettlementPeriodStart())) $data['elszDatumTol'] = $this->getSettlementPeriodStart();
+        if (Util::isNotBlank($this->getSettlementPeriodEnd()))   $data['elszDatumIg'] = $this->getSettlementPeriodEnd();
 
         return $data;
     }

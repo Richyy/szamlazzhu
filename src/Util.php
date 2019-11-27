@@ -7,7 +7,7 @@ namespace SzamlaAgent;
  *
  * @package SzamlaAgent
  */
-class SzamlaAgentUtil {
+class Util {
 
     /**
      * Alapértelmezetten hozzáadott napok száma

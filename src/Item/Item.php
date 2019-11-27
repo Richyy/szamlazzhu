@@ -3,7 +3,7 @@
 namespace SzamlaAgent\Item;
 
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Util;
 
 /**
  * Tétel
@@ -206,14 +206,14 @@ class Item {
                 case 'netPrice':
                 case 'vatAmount':
                 case 'grossAmount':
-                    SzamlaAgentUtil::checkDoubleField($field, $value, $required, __CLASS__);
+                    Util::checkDoubleField($field, $value, $required, __CLASS__);
                     break;
                 case 'name':
                 case 'id':
                 case 'quantityUnit':
                 case 'vat':
                 case 'comment':
-                    SzamlaAgentUtil::checkStrField($field, $value, $required, __CLASS__);
+                    Util::checkStrField($field, $value, $required, __CLASS__);
                     break;
             }
         }
