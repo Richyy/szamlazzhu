@@ -14,6 +14,7 @@ use SzamlaAgent\Document\Invoice\CorrectiveInvoice;
 use SzamlaAgent\Document\Invoice\FinalInvoice;
 use SzamlaAgent\Document\Invoice\PrePaymentInvoice;
 use SzamlaAgent\Response\SzamlaAgentResponse;
+use SzamlaAgent\Request\Request;
 
 
 /**
@@ -84,7 +85,7 @@ class SzamlaAgent {
      *
      * @var int
      */
-    private $callMethod = SzamlaAgentRequest::CALL_METHOD_AUTO;
+    private $callMethod = Request::CALL_METHOD_AUTO;
 
     /**
      * Tanúsítvány fájlnév
@@ -110,7 +111,7 @@ class SzamlaAgent {
     /**
      * Az aktuális Agent kérés
      *
-     * @var SzamlaAgentRequest
+     * @var Request
      */
     private $request;
 
@@ -221,13 +222,13 @@ class SzamlaAgent {
     /**
      * Számla Agent kérés elküldése és a válasz visszaadása
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return SzamlaAgentResponse
      * @throws SzamlaAgentException
      * @throws \Exception
      */
-    private function sendRequest(SzamlaAgentRequest $request) {
+    private function sendRequest(Request $request) {
         try {
             $this->setRequest($request);
             $response = new SzamlaAgentResponse($this, $request->send());
@@ -249,7 +250,7 @@ class SzamlaAgent {
      * @throws SzamlaAgentException
      */
     public function generateDocument($type, Document $document) {
-        $request = new SzamlaAgentRequest($this, $type, $document);
+        $request = new Request($this, $type, $document);
         return $this->sendRequest($request);
     }
 
@@ -430,8 +431,8 @@ class SzamlaAgent {
      * @throws SzamlaAgentException
      */
     public function getTaxPayer($taxPayerId) {
-        $request  = new SzamlaAgentRequest($this, 'getTaxPayer', new TaxPayer($taxPayerId));
-        $this->setResponseType(SzamlaAgentResponse::RESULT_AS_TAXPAYER_XML);
+        $request  = new Request($this, 'getTaxPayer', new TaxPayer($taxPayerId));
+        $this->setResponseType(Response::RESULT_AS_TAXPAYER_XML);
         return $this->sendRequest($request);
     }
 
@@ -751,14 +752,14 @@ class SzamlaAgent {
     }
 
     /**
-     * @return SzamlaAgentRequest
+     * @return Request
      */
     public function getRequest() {
         return $this->request;
     }
 
     /**
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      */
     public function setRequest($request) {
         $this->request = $request;

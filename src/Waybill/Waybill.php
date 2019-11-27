@@ -2,7 +2,7 @@
 
 namespace SzamlaAgent\Waybill;
 
-use SzamlaAgent\SzamlaAgentRequest;
+use SzamlaAgent\Request\Request;
 use SzamlaAgent\SzamlaAgentException;
 use SzamlaAgent\SzamlaAgentUtil;
 
@@ -110,12 +110,12 @@ class Waybill {
     }
 
     /**
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(SzamlaAgentRequest $request) {
+    public function buildXmlData(Request $request) {
         $data = [];
         self::checkFields(get_class());
 

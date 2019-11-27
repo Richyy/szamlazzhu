@@ -9,7 +9,7 @@ use SzamlaAgent\Document\Document;
  *
  * @package SzamlaAgent
  */
-class SzamlaAgentRequest {
+class Request {
 
     /**
      * Sikesességet jelző válaszkód
@@ -123,7 +123,7 @@ class SzamlaAgentRequest {
     /**
      * A Számla Agent kérés típusa
      *
-     * @see SzamlaAgentRequest::getActionName()
+     * @see Request::getActionName()
      * @var string
      */
     private $type;
@@ -221,10 +221,10 @@ class SzamlaAgentRequest {
         $xml = new SimpleXMLExtended($this->getXmlBase());
         $this->arrayToXML($xmlData, $xml);
 
-        $result = SzamlaAgentUtil::checkValidXml($xml->saveXML());
+        $result = Util::checkValidXml($xml->saveXML());
         // Ha nincs hiba az XML-ben, elmentjük
         if (empty($result)) {
-            $formatXml = SzamlaAgentUtil::formatXml($xml);
+            $formatXml = Util::formatXml($xml);
             $this->setXmlData($formatXml->saveXML());
 
             $this->agent->getLogger()->debug('XML adatok létrehozása kész.');
@@ -271,13 +271,13 @@ class SzamlaAgentRequest {
      * @throws \ReflectionException
      */
     private function createXmlFile(\DOMDocument $xml) {
-        $fileName = SzamlaAgentUtil::getXmlFileName('request', $this->getXmlName(), $this->getEntity() );
+        $fileName = Util::getXmlFileName('request', $this->getXmlName(), $this->getEntity() );
         $xml->save($fileName);
 
-        $this->setXmlFilePath(SzamlaAgentUtil::getRealPath($fileName));
+        $this->setXmlFilePath(Util::getRealPath($fileName));
         
         $this->agent->getLogger()->debug('XML fájl mentése sikeres.', [
-            'file_path' => SzamlaAgentUtil::getRealPath($fileName),
+            'file_path' => Util::getRealPath($fileName),
         ]);
     }
 
@@ -731,7 +731,7 @@ class SzamlaAgentRequest {
     private function getHeadersFromResponse($headerContent) {
         $headers = array();
         foreach ($headerContent as $index => $content) {
-            if (SzamlaAgentUtil::isNotBlank($content)) {
+            if (Util::isNotBlank($content)) {
                 if ($index === 0) {
                     $headers['http_code'] = $content;
                 } else {
@@ -751,10 +751,10 @@ class SzamlaAgentRequest {
      */
     public function getCookieFilePath() {
         $fileName = $this->getAgent()->getCookieFileName();
-        if (SzamlaAgentUtil::isBlank($this->getAgent()->getCookieFileName())) {
+        if (Util::isBlank($this->getAgent()->getCookieFileName())) {
             $fileName = SzamlaAgent::COOKIE_FILENAME;
         }
-        return SzamlaAgentUtil::getBasePath() . DIRECTORY_SEPARATOR . $fileName;
+        return Util::getBasePath() . DIRECTORY_SEPARATOR . $fileName;
     }
 
     /**
@@ -781,7 +781,7 @@ class SzamlaAgentRequest {
     /**
      * Beállítja a kérés típusát
      *
-     * @see   SzamlaAgentRequest::getActionName()
+     * @see   Request::getActionName()
      * @param string $type
      */
     private function setType($type) {

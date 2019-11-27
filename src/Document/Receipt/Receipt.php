@@ -9,8 +9,8 @@ use SzamlaAgent\Header\ReceiptHeader;
 use SzamlaAgent\Item\ReceiptItem;
 use SzamlaAgent\Seller;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentRequest;
 use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Request\Request;
 
 /**
  * Nyugta
@@ -166,12 +166,12 @@ class Receipt extends Document {
     /**
      * Összeállítja a nyugta XML adatait
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(SzamlaAgentRequest $request) {
+    public function buildXmlData(Request $request) {
         $fields = ['beallitasok', 'fejlec'];
 
         switch ($request->getXmlName()) {
@@ -194,13 +194,13 @@ class Receipt extends Document {
     /**
      * Összeállítja és visszaadja az adott mezőkhöz tartozó adatokat
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      * @param array              $fields
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    private function buildFieldsData(SzamlaAgentRequest $request, array $fields) {
+    private function buildFieldsData(Request $request, array $fields) {
         $data = [];
 
         if (!empty($fields)) {

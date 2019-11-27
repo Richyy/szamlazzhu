@@ -5,8 +5,8 @@ namespace SzamlaAgent\Header;
 use SzamlaAgent\Document\Document;
 use SzamlaAgent\Document\Invoice\Invoice;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentRequest;
 use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Request\Request;
 
 /**
  * Számla fejléc
@@ -284,12 +284,12 @@ class InvoiceHeader extends DocumentHeader {
      * Csak azokat az XML mezőket adjuk hozzá, amelyek kötelezőek,
      * illetve amelyek opcionálisak, de ki vannak töltve.
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(SzamlaAgentRequest $request) {
+    public function buildXmlData(Request $request) {
 
         try {
             if (empty($request)) {

@@ -2,6 +2,8 @@
 
 namespace SzamlaAgent;
 
+use SzamlaAgent\Request\Request;
+
 /**
  * Egy bizonylathoz tartozó eladó
  *
@@ -102,12 +104,12 @@ class Seller {
     /**
      * Létrehozza az eladó XML adatait a kérésben meghatározott XML séma alapján
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(SzamlaAgentRequest $request) {
+    public function buildXmlData(Request $request) {
         $data = [];
 
         $this->checkFields();

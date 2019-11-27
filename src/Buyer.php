@@ -2,6 +2,8 @@
 
 namespace SzamlaAgent;
 
+use SzamlaAgent\Request\Request;
+
 /**
  * Vevő
  *
@@ -250,12 +252,12 @@ class Buyer {
     /**
      * Létrehozza a vevő XML adatait a kérésben meghatározott XML séma alapján
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(SzamlaAgentRequest $request) {
+    public function buildXmlData(Request $request) {
         $data = [];
         switch ($request->getXmlName()) {
             case $request::XML_SCHEMA_CREATE_INVOICE:

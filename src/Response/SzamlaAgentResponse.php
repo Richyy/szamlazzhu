@@ -6,8 +6,8 @@ use SzamlaAgent\Document\Document;
 use SzamlaAgent\Log;
 use SzamlaAgent\SzamlaAgent;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentRequest;
 use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Request\Request;
 
 /**
  * A Számla Agent választ kezelő osztály
@@ -175,7 +175,7 @@ class SzamlaAgentResponse {
                     if ($agent->isDownloadPdf()) {
                         $pdfData = $responseObj->getPdfFile();
                         $xmlName = $agent->getRequest()->getXmlName();
-                        if (empty($pdfData) && !in_array($xmlName, [SzamlaAgentRequest::XML_SCHEMA_SEND_RECEIPT, SzamlaAgentRequest::XML_SCHEMA_PAY_INVOICE])) {
+                        if (empty($pdfData) && !in_array($xmlName, [Request::XML_SCHEMA_SEND_RECEIPT, Request::XML_SCHEMA_PAY_INVOICE])) {
                             throw new SzamlaAgentException(SzamlaAgentException::DOCUMENT_DATA_IS_MISSING);
                         } else if (!empty($pdfData)) {
                             $this->setPdfFile($pdfData);

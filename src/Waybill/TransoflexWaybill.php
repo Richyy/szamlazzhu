@@ -2,7 +2,7 @@
 
 namespace SzamlaAgent\Waybill;
 
-use SzamlaAgent\SzamlaAgentRequest;
+use SzamlaAgent\Request\Request;
 use SzamlaAgent\SzamlaAgentException;
 use SzamlaAgent\SzamlaAgentUtil;
 
@@ -95,12 +95,12 @@ class TransoflexWaybill extends Waybill {
     }
 
     /**
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(SzamlaAgentRequest $request) {
+    public function buildXmlData(Request $request) {
         $this->checkFields(get_class());
         $data = parent::buildXmlData($request);
 

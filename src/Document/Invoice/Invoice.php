@@ -11,8 +11,8 @@ use SzamlaAgent\Waybill\Waybill;
 use SzamlaAgent\Buyer;
 use SzamlaAgent\Seller;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentRequest;
 use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Request\Request;
 
 /**
  * Számla
@@ -249,12 +249,12 @@ class Invoice extends Document {
     /**
      * Összeállítja a számla XML adatait
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(SzamlaAgentRequest $request) {
+    public function buildXmlData(Request $request) {
         switch ($request->getXmlName()) {
             case $request::XML_SCHEMA_CREATE_INVOICE:
                 $data = $this->buildFieldsData($request, ['beallitasok', 'fejlec', 'elado', 'vevo', 'fuvarlevel', 'tetelek']);
@@ -283,13 +283,13 @@ class Invoice extends Document {
     /**
      * Összeállítja és visszaadja az adott mezőkhöz tartozó adatokat
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      * @param array              $fields
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    private function buildFieldsData(SzamlaAgentRequest $request, array $fields) {
+    private function buildFieldsData(Request $request, array $fields) {
         $data = [];
 
         if (!empty($fields)) {

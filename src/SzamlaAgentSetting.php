@@ -268,40 +268,40 @@ class SzamlaAgentSetting {
     /**
      * Összeállítja a Számla Agent beállítás XML adatait
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(SzamlaAgentRequest $request) {
+    public function buildXmlData(Request $request) {
         $settings = ['felhasznalo', 'jelszo', 'szamlaagentkulcs'];
 
         switch ($request->getXmlName()) {
-            case $request::XML_SCHEMA_CREATE_INVOICE:
+            case Request::XML_SCHEMA_CREATE_INVOICE:
                 $data = $this->buildFieldsData($request, array_merge($settings, ['eszamla', 'kulcstartojelszo', 'szamlaLetoltes', 'szamlaLetoltesPld', 'valaszVerzio', 'aggregator']));
                 break;
-            case $request::XML_SCHEMA_DELETE_PROFORMA:
+            case Request::XML_SCHEMA_DELETE_PROFORMA:
                 $data = $this->buildFieldsData($request, $settings);
                 break;
-            case $request::XML_SCHEMA_CREATE_REVERSE_INVOICE:
+            case Request::XML_SCHEMA_CREATE_REVERSE_INVOICE:
                 $data = $this->buildFieldsData($request, array_merge($settings, ['eszamla', 'kulcstartojelszo', 'szamlaLetoltes', 'szamlaLetoltesPld', 'aggregator', 'valaszVerzio']));
                 break;
-            case $request::XML_SCHEMA_PAY_INVOICE:
+            case Request::XML_SCHEMA_PAY_INVOICE:
                 $data = $this->buildFieldsData($request, array_merge($settings, ['szamlaszam', 'additiv', 'aggregator', 'valaszVerzio']));
                 break;
-            case $request::XML_SCHEMA_REQUEST_INVOICE_XML:
+            case Request::XML_SCHEMA_REQUEST_INVOICE_XML:
                 $data = $this->buildFieldsData($request, array_merge($settings, ['szamlaszam', 'rendelesSzam', 'pdf']));
                 break;
-            case $request::XML_SCHEMA_REQUEST_INVOICE_PDF:
+            case Request::XML_SCHEMA_REQUEST_INVOICE_PDF:
                 $data = $this->buildFieldsData($request, array_merge($settings, ['szamlaszam', 'rendelesSzam', 'valaszVerzio']));
                 break;
-            case $request::XML_SCHEMA_CREATE_RECEIPT:
-            case $request::XML_SCHEMA_CREATE_REVERSE_RECEIPT:
-            case $request::XML_SCHEMA_GET_RECEIPT:
+            case Request::XML_SCHEMA_CREATE_RECEIPT:
+            case Request::XML_SCHEMA_CREATE_REVERSE_RECEIPT:
+            case Request::XML_SCHEMA_GET_RECEIPT:
                 $data = $this->buildFieldsData($request, array_merge($settings, ['pdfLetoltes']));
                 break;
-            case $request::XML_SCHEMA_SEND_RECEIPT:
-            case $request::XML_SCHEMA_TAXPAYER:
+            case Request::XML_SCHEMA_SEND_RECEIPT:
+            case Request::XML_SCHEMA_TAXPAYER:
                 $data = $this->buildFieldsData($request, $settings);
                 break;
             default:
@@ -313,13 +313,13 @@ class SzamlaAgentSetting {
     /**
      * Összeállítja és visszaadja az adott mezőkhöz tartozó adatokat
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      * @param array              $fields
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    private function buildFieldsData(SzamlaAgentRequest $request, array $fields) {
+    private function buildFieldsData(Request $request, array $fields) {
         $data = [];
 
         foreach ($fields as $key) {

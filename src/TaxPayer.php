@@ -2,6 +2,8 @@
 
 namespace SzamlaAgent;
 
+use SzamlaAgent\Request\Request;
+
 /**
  * Adózó
  *
@@ -146,12 +148,12 @@ class TaxPayer {
     /**
      * Összeállítja az adózó XML adatait
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(SzamlaAgentRequest $request) {
+    public function buildXmlData(Request $request) {
         $this->checkFields();
 
         $data = [];

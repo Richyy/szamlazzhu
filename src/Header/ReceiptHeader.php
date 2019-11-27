@@ -4,8 +4,8 @@ namespace SzamlaAgent\Header;
 
 use SzamlaAgent\Document\Document;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\SzamlaAgentRequest;
 use SzamlaAgent\SzamlaAgentUtil;
+use SzamlaAgent\Request\Request;
 
 /**
  * Nyugta fejléc
@@ -167,12 +167,12 @@ class ReceiptHeader extends DocumentHeader {
     /**
      * Összeállítja a bizonylat elkészítéséhez szükséges XML fejléc adatokat
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(SzamlaAgentRequest $request) {
+    public function buildXmlData(Request $request) {
         try {
             if (empty($request)) {
                 throw new SzamlaAgentException(SzamlaAgentException::XML_DATA_NOT_AVAILABLE);
@@ -209,13 +209,13 @@ class ReceiptHeader extends DocumentHeader {
     /**
      * Összeállítja és visszaadja az adott mezőkhöz tartozó adatokat
      *
-     * @param SzamlaAgentRequest $request
+     * @param Request $request
      * @param array              $fields
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    private function buildFieldsData(SzamlaAgentRequest $request, array $fields) {
+    private function buildFieldsData(Request $request, array $fields) {
         $data = [];
 
         if (empty($request) || !empty($field)) {
