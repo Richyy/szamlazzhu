@@ -34,11 +34,6 @@ class SzamlaAgent {
     const API_URL = 'https://www.szamlazz.hu/szamla/';
 
     /**
-     * Számla Agent API használatához szükséges minimum PHP verzió
-     */
-    const PHP_VERSION = '5.6';
-
-    /**
      * Alapértelmezett karakterkódolás
      */
     const CHARSET = 'utf-8';
