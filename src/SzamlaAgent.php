@@ -130,8 +130,8 @@ class SzamlaAgent {
     /**
      * Számla Agent létrehozása
      *
-     * @param string            $username       e-mail cím vagy bejelentkezési név
-     * @param string            $password       jelszó
+     * @param string|null       $username       e-mail cím vagy bejelentkezési név
+     * @param string|null       $password       jelszó
      * @param string|null       $apiKey         Számla Agent kulcs
      * @param bool              $downloadPdf    szeretnénk-e letölteni a bizonylatot PDF formátumban
      * @param LoggerInterface   $logger         Logger service
