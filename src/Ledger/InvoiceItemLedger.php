@@ -3,7 +3,7 @@
 namespace SzamlaAgent\Ledger;
 
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * Számlatétel főkönyvi adatok
@@ -49,7 +49,7 @@ class InvoiceItemLedger extends ItemLedger {
      * @param string  $vatLedgerNumber       ÁFA főkönyvi szám
      */
     function __construct($economicEventType = '', $vatEconomicEventType = '', $revenueLedgerNumber = '', $vatLedgerNumber = '') {
-        parent::__construct($revenueLedgerNumber, $vatLedgerNumber);
+        parent::__construct((string)$revenueLedgerNumber, (string)$vatLedgerNumber);
         $this->setEconomicEventType($economicEventType);
         $this->setVatEconomicEventType($vatEconomicEventType);
     }
@@ -68,13 +68,13 @@ class InvoiceItemLedger extends ItemLedger {
             switch ($field) {
                 case 'settlementPeriodStart':
                 case 'settlementPeriodEnd':
-                    Util::checkDateField($field, $value, false, __CLASS__);
+                    SzamlaAgentUtil::checkDateField($field, $value, false, __CLASS__);
                     break;
                 case 'economicEventType':
                 case 'vatEconomicEventType':
                 case 'revenueLedgerNumber':
                 case 'vatLedgerNumber':
-                    Util::checkStrField($field, $value, false, __CLASS__);
+                    SzamlaAgentUtil::checkStrField($field, $value, false, __CLASS__);
                     break;
             }
         }
@@ -101,12 +101,12 @@ class InvoiceItemLedger extends ItemLedger {
         $data = [];
         $this->checkFields();
 
-        if (Util::isNotBlank($this->getEconomicEventType()))     $data['gazdasagiEsem'] = $this->getEconomicEventType();
-        if (Util::isNotBlank($this->getVatEconomicEventType()))  $data['gazdasagiEsemAfa'] = $this->getVatEconomicEventType();
-        if (Util::isNotBlank($this->getRevenueLedgerNumber()))   $data['arbevetelFokonyviSzam'] = $this->getRevenueLedgerNumber();
-        if (Util::isNotBlank($this->getVatLedgerNumber()))       $data['afaFokonyviSzam'] = $this->getVatLedgerNumber();
-        if (Util::isNotBlank($this->getSettlementPeriodStart())) $data['elszDatumTol'] = $this->getSettlementPeriodStart();
-        if (Util::isNotBlank($this->getSettlementPeriodEnd()))   $data['elszDatumIg'] = $this->getSettlementPeriodEnd();
+        if (SzamlaAgentUtil::isNotBlank($this->getEconomicEventType()))     $data['gazdasagiEsem'] = $this->getEconomicEventType();
+        if (SzamlaAgentUtil::isNotBlank($this->getVatEconomicEventType()))  $data['gazdasagiEsemAfa'] = $this->getVatEconomicEventType();
+        if (SzamlaAgentUtil::isNotBlank($this->getRevenueLedgerNumber()))   $data['arbevetelFokonyviSzam'] = $this->getRevenueLedgerNumber();
+        if (SzamlaAgentUtil::isNotBlank($this->getVatLedgerNumber()))       $data['afaFokonyviSzam'] = $this->getVatLedgerNumber();
+        if (SzamlaAgentUtil::isNotBlank($this->getSettlementPeriodStart())) $data['elszDatumTol'] = $this->getSettlementPeriodStart();
+        if (SzamlaAgentUtil::isNotBlank($this->getSettlementPeriodEnd()))   $data['elszDatumIg'] = $this->getSettlementPeriodEnd();
 
         return $data;
     }

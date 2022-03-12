@@ -2,9 +2,9 @@
 
 namespace SzamlaAgent\Waybill;
 
-use SzamlaAgent\Request\Request;
+use SzamlaAgent\SzamlaAgentRequest;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * Pick Pack Pont fuvarlevél
@@ -54,7 +54,7 @@ class PPPWaybill extends Waybill {
             switch ($field) {
                 case 'barcodePrefix':
                 case 'barcodePostfix':
-                    Util::checkStrField($field, $value, false, __CLASS__);
+                    SzamlaAgentUtil::checkStrField($field, $value, false, __CLASS__);
                     break;
             }
         }
@@ -63,18 +63,18 @@ class PPPWaybill extends Waybill {
 
     /**
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         $this->checkFields(get_class());
         $data = parent::buildXmlData($request);
 
         $data['ppp'] = [];
-        if (Util::isNotBlank($this->getBarcodePrefix()))  $data['ppp']['vonalkodPrefix']  = $this->getBarcodePrefix();
-        if (Util::isNotBlank($this->getBarcodePostfix())) $data['ppp']['vonalkodPostfix'] = $this->getBarcodePostfix();
+        if (SzamlaAgentUtil::isNotBlank($this->getBarcodePrefix()))  $data['ppp']['vonalkodPrefix']  = $this->getBarcodePrefix();
+        if (SzamlaAgentUtil::isNotBlank($this->getBarcodePostfix())) $data['ppp']['vonalkodPostfix'] = $this->getBarcodePostfix();
 
         return $data;
     }

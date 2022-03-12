@@ -2,9 +2,9 @@
 
 namespace SzamlaAgent\Waybill;
 
-use SzamlaAgent\Request\Request;
+use SzamlaAgent\SzamlaAgentRequest;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * Fuvarlevél
@@ -84,7 +84,7 @@ class Waybill {
                 case 'parcel':
                 case 'barcode':
                 case 'comment':
-                    Util::checkStrField($field, $value, false, __CLASS__);
+                    SzamlaAgentUtil::checkStrField($field, $value, false, __CLASS__);
                     break;
             }
         }
@@ -110,19 +110,19 @@ class Waybill {
     }
 
     /**
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         $data = [];
         self::checkFields(get_class());
 
-        if (Util::isNotBlank($this->getDestination())) $data['uticel'] = $this->getDestination();
-        if (Util::isNotBlank($this->getParcel()))      $data['futarSzolgalat'] = $this->getParcel();
-        if (Util::isNotBlank($this->getBarcode()))     $data['vonalkod'] = $this->getBarcode();
-        if (Util::isNotBlank($this->getComment()))     $data['megjegyzes'] = $this->getComment();
+        if (SzamlaAgentUtil::isNotBlank($this->getDestination())) $data['uticel'] = $this->getDestination();
+        if (SzamlaAgentUtil::isNotBlank($this->getParcel()))      $data['futarSzolgalat'] = $this->getParcel();
+        if (SzamlaAgentUtil::isNotBlank($this->getBarcode()))     $data['vonalkod'] = $this->getBarcode();
+        if (SzamlaAgentUtil::isNotBlank($this->getComment()))     $data['megjegyzes'] = $this->getComment();
 
         return $data;
     }

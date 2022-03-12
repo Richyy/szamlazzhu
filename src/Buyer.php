@@ -2,8 +2,6 @@
 
 namespace SzamlaAgent;
 
-use SzamlaAgent\Request\Request;
-
 /**
  * Vevő
  *
@@ -208,10 +206,10 @@ class Buyer {
             $required = in_array($field, $this->getRequiredFields());
             switch ($field) {
                 case 'taxPayer':
-                    Util::checkIntField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkIntField($field, $value, $required, __CLASS__);
                     break;
                 case 'sendEmail':
-                    Util::checkBoolField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkBoolField($field, $value, $required, __CLASS__);
                     break;
                 case 'id':
                 case 'email':
@@ -230,7 +228,7 @@ class Buyer {
                 case 'signatoryName':
                 case 'phone':
                 case 'comment':
-                    Util::checkStrField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkStrField($field, $value, $required, __CLASS__);
                     break;
             }
         }
@@ -252,12 +250,12 @@ class Buyer {
     /**
      * Létrehozza a vevő XML adatait a kérésben meghatározott XML séma alapján
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         $data = [];
         switch ($request->getXmlName()) {
             case $request::XML_SCHEMA_CREATE_INVOICE:
@@ -271,27 +269,32 @@ class Buyer {
                     "cim"       => $this->getAddress()
                 ];
 
-                if (Util::isNotBlank($this->getEmail()))         $data["email"] = $this->getEmail();
-                if ($this->isSendEmail())                                   $data["sendEmail"] = $this->isSendEmail();
-                if (Util::isNotBlank($this->getTaxNumber()))     $data["adoszam"] = $this->getTaxNumber();
-                if (Util::isNotBlank($this->getTaxNumberEU()))   $data["adoszamEU"] = $this->getTaxNumberEU();
-                if (Util::isNotBlank($this->getPostalName()))    $data["postazasiNev"] = $this->getPostalName();
-                if (Util::isNotBlank($this->getPostalCountry())) $data["postazasiOrszag"] = $this->getPostalCountry();
-                if (Util::isNotBlank($this->getPostalZip()))     $data["postazasiIrsz"] = $this->getPostalZip();
-                if (Util::isNotBlank($this->getPostalCity()))    $data["postazasiTelepules"] = $this->getPostalCity();
-                if (Util::isNotBlank($this->getPostalAddress())) $data["postazasiCim"] = $this->getPostalAddress();
+                if (SzamlaAgentUtil::isNotBlank($this->getEmail()))         $data["email"] = $this->getEmail();
 
-                if (Util::isNotNull($this->getLedgerData())) {
+                $data["sendEmail"] = $this->isSendEmail() ? true : false;
+
+                if (SzamlaAgentUtil::isNotBlank($this->getTaxPayer()))      $data["adoalany"] = $this->getTaxPayer();
+                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumber()))     $data["adoszam"] = $this->getTaxNumber();
+                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumberEU()))   $data["adoszamEU"] = $this->getTaxNumberEU();
+                if (SzamlaAgentUtil::isNotBlank($this->getPostalName()))    $data["postazasiNev"] = $this->getPostalName();
+                if (SzamlaAgentUtil::isNotBlank($this->getPostalCountry())) $data["postazasiOrszag"] = $this->getPostalCountry();
+                if (SzamlaAgentUtil::isNotBlank($this->getPostalZip()))     $data["postazasiIrsz"] = $this->getPostalZip();
+                if (SzamlaAgentUtil::isNotBlank($this->getPostalCity()))    $data["postazasiTelepules"] = $this->getPostalCity();
+                if (SzamlaAgentUtil::isNotBlank($this->getPostalAddress())) $data["postazasiCim"] = $this->getPostalAddress();
+
+                if (SzamlaAgentUtil::isNotNull($this->getLedgerData())) {
                     $data["vevoFokonyv"] = $this->getLedgerData()->getXmlData();
                 }
 
-                if (Util::isNotBlank($this->getId()))            $data["azonosito"] = $this->getId();
-                if (Util::isNotBlank($this->getSignatoryName())) $data["alairoNeve"] = $this->getSignatoryName();
-                if (Util::isNotBlank($this->getPhone()))         $data["telefonszam"] = $this->getPhone();
-                if (Util::isNotBlank($this->getComment()))       $data["megjegyzes"] = $this->getComment();
+                if (SzamlaAgentUtil::isNotBlank($this->getId()))            $data["azonosito"] = $this->getId();
+                if (SzamlaAgentUtil::isNotBlank($this->getSignatoryName())) $data["alairoNeve"] = $this->getSignatoryName();
+                if (SzamlaAgentUtil::isNotBlank($this->getPhone()))         $data["telefonszam"] = $this->getPhone();
+                if (SzamlaAgentUtil::isNotBlank($this->getComment()))       $data["megjegyzes"] = $this->getComment();
                 break;
             case $request::XML_SCHEMA_CREATE_REVERSE_INVOICE:
-                if (Util::isNotBlank($this->getEmail()))         $data["email"] = $this->getEmail();
+                if (SzamlaAgentUtil::isNotBlank($this->getEmail()))         $data["email"] = $this->getEmail();
+                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumber()))     $data["adoszam"] = $this->getTaxNumber();
+                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumberEU()))   $data["adoszamEU"] = $this->getTaxNumberEU();
                 break;
             default:
                 throw new SzamlaAgentException("Nincs ilyen XML séma definiálva: {$request->getXmlName()}");
@@ -427,22 +430,17 @@ class Buyer {
     }
 
     /**
-     * Beállítja, hogy a vevő milyen típusú adóalany
-     *
-     * Adott ÁFA összeg felett be kell küldeni az adóhatósághoz a számlát a NAV online rendszerében, kivéve ha a vásárló magányszemély.
+     * Beállítja, hogy a vevő milyen típusú adóalany.
      * Ezt az információt a partner adatként tárolja a rendszerben, ott módosítható is.
      *
      * A következő értékeket veheti fel ez a mező:
+     *  7: TaxPayer::TAXPAYER_NON_EU_ENTERPRISE - EU-n kívüli vállalkozás
+     *  6: TaxPayer::TAXPAYER_EU_ENTERPRISE     - EU-s vállalkozás
+     *  1: TaxPayer::TAXPAYER_HAS_TAXNUMBER     - van magyar adószáma
+     *  0: TaxPayer::TAXPAYER_WE_DONT_KNOW      - nem tudjuk
+     * -1: TaxPayer::TAXPAYER_NO_TAXNUMBER      - nincs adószáma
      *
-     *  5: TaxPayer::TAXPAYER_JOINT_VENTURE                        - társas vállalkozás (Bt., Kft., zRt.)
-     *  4: TaxPayer::TAXPAYER_INDIVIDUAL_BUSINESS                  - egyéni vállalkozó
-     *  3: TaxPayer::TAXPAYER_PRIVATE_INDIVIDUAL_WITH_TAXNUMBER    - adószámos magánszemély
-     *  2: TaxPayer::TAXPAYER_OTHER_ORGANIZATION_WITH_TAXNUMBER    - adószámos egyéb szervezet
-     *  1: TaxPayer::TAXPAYER_HAS_TAXNUMBER                        - van adószáma
-     *  0: TaxPayer::TAXPAYER_WE_DONT_KNOW                         - nem tudjuk
-     * -1: TaxPayer::TAXPAYER_NO_TAXNUMBER                         - nincs adószáma
-     * -2: TaxPayer::TAXPAYER_PRIVATE_INDIVIDUAL                   - magánszemély
-     * -3: TaxPayer::TAXPAYER_OTHER_ORGANIZATION_WITHOUT_TAXNUMBER - adószám nélküli egyéb szervezet
+     * @see https://tudastar.szamlazz.hu/gyik/vevo-adoszama-szamlan
      *
      * @param int $taxPayer
      */
@@ -614,4 +612,4 @@ class Buyer {
     public function setComment($comment) {
         $this->comment = $comment;
     }
- }
+}

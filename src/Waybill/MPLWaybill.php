@@ -2,9 +2,9 @@
 
 namespace SzamlaAgent\Waybill;
 
-use SzamlaAgent\Request\Request;
+use SzamlaAgent\SzamlaAgentRequest;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * MPL fuvarlevél
@@ -87,13 +87,13 @@ class MPLWaybill extends Waybill {
             $required = in_array($field, $this->getRequiredFields());
             switch ($field) {
                 case 'insuredValue':
-                    Util::checkDoubleField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkDoubleField($field, $value, $required, __CLASS__);
                     break;
                 case 'buyerCode':
                 case 'weight':
                 case 'service':
                 case 'shippingTime':
-                    Util::checkStrField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkStrField($field, $value, $required, __CLASS__);
                     break;
             }
         }
@@ -101,12 +101,12 @@ class MPLWaybill extends Waybill {
     }
 
     /**
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         $this->checkFields(get_class());
         $data = parent::buildXmlData($request);
 
@@ -115,12 +115,12 @@ class MPLWaybill extends Waybill {
         $data['mpl']['vonalkod'] = $this->getBarcode();
         $data['mpl']['tomeg'] = $this->getWeight();
 
-        if (Util::isNotBlank($this->getService())) {
+        if (SzamlaAgentUtil::isNotBlank($this->getService())) {
             $data['mpl']['kulonszolgaltatasok'] = $this->getService();
         }
 
-        if (Util::isNotNull($this->getInsuredValue())) {
-            $data['mpl']['erteknyilvanitas'] = Util::doubleFormat($this->getInsuredValue());
+        if (SzamlaAgentUtil::isNotNull($this->getInsuredValue())) {
+            $data['mpl']['erteknyilvanitas'] = SzamlaAgentUtil::doubleFormat($this->getInsuredValue());
         }
 
         return $data;

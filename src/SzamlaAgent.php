@@ -2,7 +2,6 @@
 
 namespace SzamlaAgent;
 
-use Psr\Log\LoggerInterface;
 use SzamlaAgent\Document\Document;
 use SzamlaAgent\Document\DeliveryNote;
 use SzamlaAgent\Document\Proforma;
@@ -14,7 +13,7 @@ use SzamlaAgent\Document\Invoice\CorrectiveInvoice;
 use SzamlaAgent\Document\Invoice\FinalInvoice;
 use SzamlaAgent\Document\Invoice\PrePaymentInvoice;
 use SzamlaAgent\Response\SzamlaAgentResponse;
-use SzamlaAgent\Request\Request;
+use SzamlaAgent\Header\DocumentHeader;
 
 
 /**
@@ -27,12 +26,17 @@ class SzamlaAgent {
     /**
      * Számla Agent API aktuális verzió
      */
-    const API_VERSION = '2.8.1';
+    const API_VERSION = '2.10.11';
 
     /**
      * Számla Agent API url
      */
     const API_URL = 'https://www.szamlazz.hu/szamla/';
+
+    /**
+     * Számla Agent API használatához szükséges minimum PHP verzió
+     */
+    const PHP_VERSION = '5.6';
 
     /**
      * Alapértelmezett karakterkódolás
@@ -69,12 +73,26 @@ class SzamlaAgent {
      */
     const ATTACHMENTS_SAVE_PATH = './attachments';
 
+
     /**
-     * PSR kompatibilis Logger
+     * Naplózási szint
      *
-     * @var LoggerInterface
+     * 0: LOG_LEVEL_OFF   - nincs naplózás
+     * 1: LOG_LEVEL_ERROR - hibák naplózása
+     * 2: LOG_LEVEL_WARN  - hibák és figyelmeztetések naplózása
+     * 3: LOG_LEVEL_DEBUG - minden típus naplózása (fejlesztői mód)
+     *
+     * @var int
      */
-    private $logger;
+    private $logLevel;
+
+    /**
+     * Naplózási e-mail cím
+     * Erre az e-mail címre küldünk üzenetet, ha hiba esemény történik
+     *
+     * @var string
+     */
+    private $logEmail = '';
 
     /**
      * Számla Agent kérés módja
@@ -85,14 +103,7 @@ class SzamlaAgent {
      *
      * @var int
      */
-    private $callMethod = Request::CALL_METHOD_AUTO;
-
-    /**
-     * Tanúsítvány fájlnév
-     *
-     * @var string
-     */
-    private $certificationFileName = self::CERTIFICATION_FILENAME;
+    private $callMethod = SzamlaAgentRequest::CALL_METHOD_CURL;
 
     /**
      * Cookie fájlnév
@@ -104,16 +115,23 @@ class SzamlaAgent {
     /**
      * Számla Agent beállítások
      *
-     * @var Setting
+     * @var SzamlaAgentSetting
      */
     private $setting;
 
     /**
      * Az aktuális Agent kérés
      *
-     * @var Request
+     * @var SzamlaAgentRequest
      */
     private $request;
+
+    /**
+     * Agent kéréshez alkalmazott timeout
+     *
+     * @var int
+     */
+    private $requestTimeout = SzamlaAgentRequest::REQUEST_TIMEOUT;
 
     /**
      * Az aktuális Agent válasz
@@ -128,45 +146,94 @@ class SzamlaAgent {
     protected static $agents = [];
 
     /**
+     * Egyedi HTTP fejlécek
+     *
+     * @var array
+     */
+    protected $customHTTPHeaders = [];
+
+    /**
+     * API URL
+     *
+     * @var string
+     */
+    protected $apiUrl = self::API_URL;
+
+    /**
+     * XML fájlok mentésének engedélyezése
+     *
+     * @var boolean
+     */
+    protected $xmlFileSave = true;
+
+    /**
+     * Generált (szervernek elküldött) XML fájlok mentésének engedélyezése
+     *
+     * @var boolean
+     */
+    protected $requestXmlFileSave = true;
+
+    /**
+     * Generált (szervertől visszakapott) válasz XML fájlok mentésének engedélyezése
+     *
+     * @var boolean
+     */
+    protected $responseXmlFileSave = true;
+
+    /**
+     * Generált PDF fájlok mentésének engedélyezése
+     *
+     * @var boolean
+     */
+    protected $pdfFileSave = true;
+
+    /**
+     * @var array
+     */
+    protected $environment = array();
+
+    /**
+     * Tanúsítvány útvonal
+     *
+     * @var string
+     */
+    private $certificationPath = self::CERTIFICATION_PATH;
+
+
+    /**
      * Számla Agent létrehozása
      *
-     * @param string|null       $username       e-mail cím vagy bejelentkezési név
-     * @param string|null       $password       jelszó
-     * @param string|null       $apiKey         Számla Agent kulcs
-     * @param bool              $downloadPdf    szeretnénk-e letölteni a bizonylatot PDF formátumban
-     * @param LoggerInterface   $logger         Logger service
-     * @param int               $responseType   válasz típusa (szöveges vagy XML)
-     * @param string            $aggregator     webáruházat futtató motor neve
+     * @param string $username     e-mail cím vagy bejelentkezési név
+     * @param string $password     jelszó
+     * @param string $apiKey       Számla Agent kulcs
+     * @param bool   $downloadPdf  szeretnénk-e letölteni a bizonylatot PDF formátumban
+     * @param int    $logLevel     naplózási szint
+     * @param int    $responseType válasz típusa (szöveges vagy XML)
+     * @param string $aggregator   webáruházat futtató motor neve
      *
      * @throws SzamlaAgentException
      */
-    protected function __construct($username, $password, $apiKey, $downloadPdf, LoggerInterface $logger,  $responseType = SzamlaAgentResponse::RESULT_AS_TEXT, $aggregator = '') {
-        
-        $this->logger = $logger;
-        
-        $this->setSetting(new Setting($username, $password, $apiKey, $downloadPdf, Setting::DOWNLOAD_COPIES_COUNT, $responseType, $aggregator));
-        
-        $key = !empty($username) ? 'username' : 'api_key';
-        $value = !empty($username) ? $username : $apiKey;
-        $this->logger->debug('Számla Agent inicializálása kész', [
-            $key => $value,
-        ]);
+    protected function __construct($username, $password, $apiKey, $downloadPdf, $logLevel = Log::LOG_LEVEL_DEBUG,  $responseType = SzamlaAgentResponse::RESULT_AS_TEXT, $aggregator = '') {
+        $this->setSetting(new SzamlaAgentSetting($username, $password, $apiKey, $downloadPdf, SzamlaAgentSetting::DOWNLOAD_COPIES_COUNT, $responseType, $aggregator));
+        $this->setLogLevel($logLevel);
+        $this->setCookieFileName($this->buildCookieFileName());
+        $this->writeLog("Számla Agent inicializálása kész (" . (!empty($username) ? 'username: ' . $username : 'apiKey: ' . $apiKey) . ").", Log::LOG_LEVEL_DEBUG);
     }
 
     /**
      * Számla Agent létrehozása (felhasználónév és jelszóval)
      *
-     * @param string            $username    e-mail cím vagy bejelentkezési név
-     * @param string            $password    jelszó
-     * @param bool              $downloadPdf szeretnénk-e letölteni a bizonylatot PDF formátumban
-     * @param LoggerInterface   $logger      Logger service
+     * @param string $username    e-mail cím vagy bejelentkezési név
+     * @param string $password    jelszó
+     * @param bool   $downloadPdf szeretnénk-e letölteni a bizonylatot PDF formátumban
+     * @param int    $logLevel    naplózási szint
      *
      * @return SzamlaAgent
      * @throws SzamlaAgentException
      *
      * @deprecated 2.5 Nem ajánlott a használata, helyette SzamlaAgentAPI::create($apiKey);
      */
-    public static function create($username, $password, $downloadPdf = true, LoggerInterface $logger) {
+    public static function create($username, $password, $downloadPdf = true, $logLevel = Log::LOG_LEVEL_DEBUG) {
         $index = self::getHash($username);
 
         $agent = null;
@@ -175,7 +242,7 @@ class SzamlaAgent {
         }
 
         if ($agent === null) {
-            return self::$agents[$index] = new self($username, $password, null, $downloadPdf, $logger);
+            return self::$agents[$index] = new self($username, $password, null, $downloadPdf, $logLevel);
         } else {
             return $agent;
         }
@@ -185,7 +252,7 @@ class SzamlaAgent {
      * @throws SzamlaAgentException
      */
     function __destruct() {
-        $this->logger->debug('Számla Agent műveletek befejezve');
+        $this->writeLog("Számla Agent műveletek befejezve." . PHP_EOL . str_repeat("_",80) . PHP_EOL, Log::LOG_LEVEL_DEBUG);
     }
 
     /**
@@ -201,7 +268,7 @@ class SzamlaAgent {
         $agent = self::$agents[$index];
 
         if ($agent === null) {
-            if (strpos($instanceId, '@') === false && strlen($instanceId) == Setting::API_KEY_LENGTH) {
+            if (strpos($instanceId, '@') === false && strlen($instanceId) == SzamlaAgentSetting::API_KEY_LENGTH) {
                 throw new SzamlaAgentException(SzamlaAgentException::NO_AGENT_INSTANCE_WITH_APIKEY);
             } else {
                 throw new SzamlaAgentException(SzamlaAgentException::NO_AGENT_INSTANCE_WITH_USERNAME);
@@ -222,13 +289,13 @@ class SzamlaAgent {
     /**
      * Számla Agent kérés elküldése és a válasz visszaadása
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return SzamlaAgentResponse
      * @throws SzamlaAgentException
      * @throws \Exception
      */
-    private function sendRequest(Request $request) {
+    private function sendRequest(SzamlaAgentRequest $request) {
         try {
             $this->setRequest($request);
             $response = new SzamlaAgentResponse($this, $request->send());
@@ -250,7 +317,7 @@ class SzamlaAgent {
      * @throws SzamlaAgentException
      */
     public function generateDocument($type, Document $document) {
-        $request = new Request($this, $type, $document);
+        $request = new SzamlaAgentRequest($this, $type, $document);
         return $this->sendRequest($request);
     }
 
@@ -323,6 +390,11 @@ class SzamlaAgent {
      * @throws SzamlaAgentException
      */
     public function payInvoice(Invoice $invoice) {
+        if ($this->getResponseType() != SzamlaAgentResponse::RESULT_AS_TEXT) {
+            $msg = 'Helytelen beállítási kísérlet a számla kifizetettségi adatok elküldésénél: a kérésre adott válaszverziónak TEXT formátumúnak kell lennie!';
+            $this->writeLog($msg, Log::LOG_LEVEL_WARN);
+        }
+        $this->setResponseType(SzamlaAgentResponse::RESULT_AS_TEXT);
         return $this->generateDocument('payInvoice', $invoice);
     }
 
@@ -359,7 +431,7 @@ class SzamlaAgent {
 
         if ($this->getResponseType() !== SzamlaAgentResponse::RESULT_AS_XML) {
             $msg = 'Helytelen beállítási kísérlet a számla adatok lekérdezésénél: Számla adatok letöltéséhez a kérésre adott válasznak xml formátumúnak kell lennie!';
-            $this->logger->warn($msg);
+            $this->writeLog($msg, Log::LOG_LEVEL_WARN);
         }
 
         $this->setDownloadPdf($downloadPdf);
@@ -383,16 +455,39 @@ class SzamlaAgent {
 
         if ($type == Invoice::FROM_INVOICE_NUMBER) {
             $invoice->getHeader()->setInvoiceNumber($data);
+        } elseif ($type == Invoice::FROM_INVOICE_EXTERNAL_ID) {
+            if (SzamlaAgentUtil::isBlank($data)) {
+                throw new SzamlaAgentException(SzamlaAgentException::INVOICE_EXTERNAL_ID_IS_EMPTY);
+            }
+            $this->getSetting()->setInvoiceExternalId($data);
         } else {
             $invoice->getHeader()->setOrderNumber($data);
         }
 
         if (!$this->isDownloadPdf()) {
             $msg = 'Helytelen beállítási kísérlet a számla PDF lekérdezésénél: Számla letöltéshez a "downloadPdf" paraméternek "true"-nak kell lennie!';
-            $this->logger->warn($msg);
+            $this->writeLog($msg, Log::LOG_LEVEL_WARN);
         }
         $this->setDownloadPdf(true);
         return $this->generateDocument('requestInvoicePDF', $invoice);
+    }
+
+
+    /**
+     * Visszaadja külső számlaazonosító alapján, hogy létezik-e a számla a számlázz.hu rendszerében
+     *
+     * @param $invoiceExternalId
+     * @return bool
+     */
+    public function isExistsInvoiceByExternalId($invoiceExternalId) {
+        try {
+            $result = $this->getInvoicePdf($invoiceExternalId, Invoice::FROM_INVOICE_EXTERNAL_ID);
+            if ($result->isSuccess() && SzamlaAgentUtil::isNotBlank($result->getDocumentNumber())) {
+                return true;
+            }
+        } catch (\Exception $e) {}
+
+        return false;
     }
 
     /**
@@ -431,8 +526,8 @@ class SzamlaAgent {
      * @throws SzamlaAgentException
      */
     public function getTaxPayer($taxPayerId) {
-        $request  = new Request($this, 'getTaxPayer', new TaxPayer($taxPayerId));
-        $this->setResponseType(Response::RESULT_AS_TAXPAYER_XML);
+        $request  = new SzamlaAgentRequest($this, 'getTaxPayer', new TaxPayer($taxPayerId));
+        $this->setResponseType(SzamlaAgentResponse::RESULT_AS_TAXPAYER_XML);
         return $this->sendRequest($request);
     }
 
@@ -510,10 +605,60 @@ class SzamlaAgent {
     }
 
     /**
+     * @param string $message
+     * @param int    $type
+     *
+     * @return bool
+     */
+    public function writeLog($message, $type = Log::LOG_LEVEL_DEBUG) {
+        if ($this->logLevel < $type) {
+            return false;
+        }
+
+        if ($this->logLevel != Log::LOG_LEVEL_OFF) {
+            Log::writeLog($message, $type, $this->logEmail);
+        }
+        return true;
+    }
+
+    /**
+     * @param $message
+     */
+    public function logError($message) {
+        $this->writeLog($message, Log::LOG_LEVEL_ERROR);
+    }
+
+    /**
      * @return string
      */
     public function getApiVersion() {
         return self::API_VERSION;
+    }
+
+    /**
+     * Visszaadja a naplózási szintet
+     *
+     * @return int
+     */
+    public function getLogLevel() {
+        return $this->logLevel;
+    }
+
+    /**
+     * Beállítja a naplózási szintet
+     *
+     * 0: LOG_LEVEL_OFF   - nincs naplózás
+     * 1: LOG_LEVEL_ERROR - hibák naplózása
+     * 2: LOG_LEVEL_WARN  - hibák és figyelmeztetések naplózása
+     * 3: LOG_LEVEL_DEBUG - minden típus naplózása (fejlesztői mód)
+     *
+     * @var int
+     */
+    public function setLogLevel($logLevel) {
+        if (Log::isNotValidLogLevel($logLevel)) {
+            $logLevel = Log::LOG_LEVEL_DEBUG;
+        }
+        $this->logLevel = $logLevel;
     }
 
     /**
@@ -528,10 +673,6 @@ class SzamlaAgent {
     /**
      * Beállítja a Számla Agent kérés módját
      *
-     * 1: CALL_METHOD_LEGACY - natív
-     * 2: CALL_METHOD_CURL   - CURL
-     * 3: CALL_METHOD_AUTO   - automatikus
-     *
      * @param int $callMethod
      */
     public function setCallMethod($callMethod) {
@@ -541,22 +682,48 @@ class SzamlaAgent {
     /**
      * @return string
      */
-    public function getCertificationFile() {
-        return Util::getAbsPath(self::CERTIFICATION_PATH, self::CERTIFICATION_FILENAME);
+    public function getLogEmail() {
+        return $this->logEmail;
+    }
+
+    /**
+     * @param string $logEmail
+     */
+    public function setLogEmail($logEmail) {
+        $this->logEmail = $logEmail;
     }
 
     /**
      * @return string
      */
     public function getCertificationFileName() {
-        return $this->certificationFileName;
+        return self::CERTIFICATION_FILENAME;
     }
 
     /**
-     * @param string $certificationFileName
+     * @return string
      */
-    public function setCertificationFileName($certificationFileName) {
-        $this->certificationFileName = $certificationFileName;
+    public function getCertificationFile() {
+        if ($this->getCertificationPath() == self::CERTIFICATION_PATH) {
+            return SzamlaAgentUtil::getAbsPath(self::CERTIFICATION_PATH, $this->getCertificationFileName());
+        } else {
+            return $this->getCertificationPath() . DIRECTORY_SEPARATOR . $this->getCertificationFileName();
+        }
+    }
+
+    /**
+     * @return string
+     */
+    public function getCertificationPath() {
+        return $this->certificationPath;
+    }
+
+    /**
+     * @param   $certificationPath
+     * @example /var/www/new_path/certs
+     */
+    public function setCertificationPath($certificationPath) {
+        $this->certificationPath = $certificationPath;
     }
 
     /**
@@ -567,21 +734,41 @@ class SzamlaAgent {
     }
 
     /**
+     * Beállítja a kérés elküldéséhez csatolt cookie fájl nevét
+     *
+     * Erre akkor van szükség, ha több számlázási fiókhoz használod az Agent API-t.
+     * Ebben az esetben számlázási fiókonként beállíthatod a session-hoz tartozó sütit
+     *
+     * @see https://docs.szamlazz.hu/#do-i-need-to-handle-session-cookies
+     *
      * @param string $cookieFile
      */
     public function setCookieFileName($cookieFile) {
         $this->cookieFileName = $cookieFile;
     }
 
+    public function buildCookieFileName() {
+        $fileName = 'cookie';
+        $userName = $this->getSetting()->getUsername();
+        $apiKey   = $this->getSetting()->getApiKey();
+
+        if (!empty($userName)) {
+            $fileName .= '_' . hash('sha1', $userName);
+        } else if (!empty($apiKey)) {
+            $fileName .= '_' . hash('sha1', $apiKey);
+        }
+        return $fileName . '.txt';
+    }
+
     /**
-     * @return Setting
+     * @return SzamlaAgentSetting
      */
     public function getSetting() {
         return $this->setting;
     }
 
     /**
-     * @param Setting $setting
+     * @param SzamlaAgentSetting $setting
      */
     public function setSetting($setting) {
         $this->setting = $setting;
@@ -654,21 +841,22 @@ class SzamlaAgent {
     }
 
     /**
-     * Visszaadja a kulcstartót nyitó jelszó
-     *
      * @return string
      */
-    public function getKeychain() {
-        return $this->getSetting()->getKeychain();
+    public function getApiUrl() {
+        if (SzamlaAgentUtil::isNotBlank($this->getEnvironmentUrl())) {
+            $this->setApiUrl($this->getEnvironmentUrl());
+        } else if (SzamlaAgentUtil::isBlank($this->apiUrl)) {
+            $this->setApiUrl(self::API_URL);
+        }
+        return $this->apiUrl;
     }
 
     /**
-     * Beállítja a kulcstartót nyitó jelszó (e-számla esetén)
-     *
-     * @param $keychain
+     * @param string $apiUrl
      */
-    public function setKeychain($keychain) {
-        $this->getSetting()->setKeychain($keychain);
+    public function setApiUrl($apiUrl) {
+        $this->apiUrl = $apiUrl;
     }
 
     /**
@@ -752,14 +940,49 @@ class SzamlaAgent {
     }
 
     /**
-     * @return Request
+     * @return bool
+     */
+    public function getGuardian() {
+        return $this->getSetting()->getGuardian();
+    }
+
+    /**
+     * Ne használd ezt az adattagot
+     *
+     * @param bool $guardian
+     */
+    public function setGuardian($guardian) {
+        $this->getSetting()->setGuardian($guardian);
+    }
+
+    /**
+     * @return string
+     */
+    public function getInvoiceExternalId() {
+        return $this->getSetting()->getInvoiceExternalId();
+    }
+
+    /**
+     * Beállítja a külső számlaazonosítót
+     *
+     * A számlát a külső rendszer (Számla Agentet használó rendszer) ezzel az adattal azonosítja.
+     * (a számla adatai később ezzel az adattal is lekérdezhetők lesznek)
+     *
+     * @param string $invoiceExternalId
+     */
+    public function setInvoiceExternalId($invoiceExternalId) {
+        $this->getSetting()->setInvoiceExternalId($invoiceExternalId);
+    }
+
+    /**
+     * @return SzamlaAgentRequest
      */
     public function getRequest() {
         return $this->request;
     }
 
     /**
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      */
     public function setRequest($request) {
         $this->request = $request;
@@ -779,8 +1002,253 @@ class SzamlaAgent {
         $this->response = $response;
     }
 
-    public function getLogger() : LoggerInterface
-    {
-        return $this->logger;
+    /**
+     * @return Log
+     */
+    public function getLog() {
+        return Log::get();
+    }
+
+    /**
+     * @return array
+     */
+    public function getCustomHTTPHeaders() {
+       return $this->customHTTPHeaders;
+    }
+
+    /**
+     * Egyedi HTTP fejléc hozzáadása
+     *
+     * @param $key
+     * @param $value
+     *
+     * @throws SzamlaAgentException
+     */
+    public function addCustomHTTPHeader($key, $value) {
+        if (SzamlaAgentUtil::isNotBlank($key)) {
+            $this->customHTTPHeaders[$key] = $value;
+        } else {
+            $this->writeLog('Egyedi HTTP fejléchez megadott kulcs nem lehet üres', Log::LOG_LEVEL_WARN);
+        }
+    }
+
+    /**
+     * Egyedi HTTP fejléc eltávolítása
+     *
+     * @param $key
+     */
+    public function removeCustomHTTPHeader($key) {
+        if (SzamlaAgentUtil::isNotBlank($key)) {
+            unset($this->customHTTPHeaders[$key]);
+        }
+    }
+
+    /**
+     * Visszaadja, hogy engedélyezve van-e a PDF mentés az alapértelmezetten beállított helyre
+     *
+     * @return bool
+     */
+    public function isPdfFileSave() {
+        return $this->pdfFileSave;
+    }
+
+    /**
+     * Beállítja, hogy a válaszban kapott PDF-ek el legyenek-e mentve az alapértelmezetten beállított helyre.
+     * Ez a beállítás akkor hasznos, ha a válaszban kapott adatokból generált PDF-et saját magad szeretnéd előállítani
+     *
+     * @param bool $pdfFileSave
+     */
+    public function setPdfFileSave($pdfFileSave) {
+        $this->pdfFileSave = $pdfFileSave;
+    }
+
+    /**
+     * Visszaadja, hogy engedélyezve van-e az XML mentés az alapértelmezetten beállított helyre
+     *
+     * @return bool
+     */
+    public function isXmlFileSave() {
+        return $this->xmlFileSave;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isNotXmlFileSave() {
+        return !$this->isXmlFileSave();
+    }
+
+    /**
+     * Beállítja, hogy engedélyezve van-e az XML mentés az alapértelmezetten beállított helyre.
+     *
+     * @param bool $xmlFileSave
+     */
+    public function setXmlFileSave($xmlFileSave) {
+        $this->xmlFileSave = $xmlFileSave;
+    }
+
+    /**
+     * Visszaadja, hogy engedélyezve van-e a generált (szervernek elküldött) XML fájlok mentése az alapértelmezetten beállított helyre
+     *
+     * @return bool
+     */
+    public function isRequestXmlFileSave() {
+        return $this->requestXmlFileSave;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isNotRequestXmlFileSave() {
+        return !$this->isRequestXmlFileSave();
+    }
+
+    /**
+     * Beállítja, hogy engedélyezve van-e a generált (szervernek elküldött) XML fájlok mentése az alapértelmezetten beállított helyre.
+     *
+     * @param bool $requestXmlFileSave
+     */
+    public function setRequestXmlFileSave($requestXmlFileSave) {
+        $this->requestXmlFileSave = $requestXmlFileSave;
+    }
+
+    /**
+     * Visszaadja, hogy engedélyezve van-e a generált (szervertől visszakapott) válasz XML fájlok mentése az alapértelmezetten beállított helyre.
+     *
+     * @return bool
+     */
+    public function isResponseXmlFileSave() {
+        return $this->responseXmlFileSave;
+    }
+
+    /**
+     * Beállítja, hogy engedélyezve van-e a generált (szervertől visszakapott) válasz XML fájlok mentése az alapértelmezetten beállított helyre.
+     *
+     * @param bool $responseXmlFileSave
+     */
+    public function setResponseXmlFileSave($responseXmlFileSave) {
+        $this->responseXmlFileSave = $responseXmlFileSave;
+    }
+
+    /**
+     * @return Document|object
+     */
+    public function getRequestEntity() {
+        return $this->getRequest()->getEntity();
+    }
+
+    /**
+     * @return DocumentHeader|null
+     */
+    public function getRequestEntityHeader() {
+        $header = null;
+
+        $request = $this->getRequest();
+        $entity = $request->getEntity();
+
+        if ($entity != null && $entity instanceof Invoice) {
+            $header = $entity->getHeader();
+        }
+        return $header;
+    }
+
+    /**
+     * @return int
+     */
+    public function getRequestTimeout() {
+        return $this->requestTimeout;
+    }
+
+    /**
+     * Agent kérés timeout beállítása (másodpercben)
+     *
+     * @param int $timeout
+     */
+    public function setRequestTimeout($timeout) {
+        $this->requestTimeout = $timeout;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isInvoiceItemIdentifier() {
+        return $this->getSetting()->isInvoiceItemIdentifier();
+    }
+
+    /**
+     * @param bool $invoiceItemIdentifier
+     */
+    public function setInvoiceItemIdentifier($invoiceItemIdentifier) {
+        $this->getSetting()->setInvoiceItemIdentifier($invoiceItemIdentifier);
+    }
+
+    /**
+     * @return array
+     */
+    public function getEnvironment() {
+        return $this->environment;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function hasEnvironment() {
+        return ($this->environment != null && is_array($this->environment) && !empty($this->environment));
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getEnvironmentName() {
+        return ($this->hasEnvironment() && array_key_exists('name', $this->environment) ? $this->environment['name'] : null);
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getEnvironmentUrl() {
+        return ($this->hasEnvironment() && array_key_exists('url', $this->environment) ? $this->environment['url'] : null);
+    }
+
+    /**
+     * @param string  $name
+     * @param string  $type
+     * @param string  $url
+     * @param array   $authorization
+     */
+    public function setEnvironment($name, $url, $authorization = array()) {
+        $this->environment = array(
+           'name' => $name,
+           'url'  => $url,
+           'auth' => $authorization
+        );
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasEnvironmentAuth() {
+        return $this->hasEnvironment() && array_key_exists('auth', $this->environment) && is_array($this->environment['auth']);
+    }
+
+    /**
+     * @return int
+     */
+    public function getEnvironmentAuthType() {
+        return ($this->hasEnvironmentAuth() && array_key_exists('type', $this->environment['auth']) ? $this->environment['auth']['type'] : 0);
+    }
+
+    /**
+     * @return string
+     */
+    public function getEnvironmentAuthUser() {
+        return ($this->hasEnvironmentAuth() && array_key_exists('user', $this->environment['auth']) ? $this->environment['auth']['user'] : null);
+    }
+
+    /**
+     * @return string
+     */
+    public function getEnvironmentAuthPassword() {
+        return ($this->hasEnvironmentAuth() && array_key_exists('password', $this->environment['auth']) ? $this->environment['auth']['password'] : null);
     }
 }

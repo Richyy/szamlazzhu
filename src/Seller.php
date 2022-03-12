@@ -2,8 +2,6 @@
 
 namespace SzamlaAgent;
 
-use SzamlaAgent\Request\Request;
-
 /**
  * Egy bizonylathoz tartozó eladó
  *
@@ -82,7 +80,7 @@ class Seller {
                 case 'emailSubject':
                 case 'emailContent':
                 case 'signatoryName':
-                    Util::checkStrField($field, $value, false, __CLASS__);
+                    SzamlaAgentUtil::checkStrField($field, $value, false, __CLASS__);
                     break;
             }
         }
@@ -104,26 +102,26 @@ class Seller {
     /**
      * Létrehozza az eladó XML adatait a kérésben meghatározott XML séma alapján
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         $data = [];
 
         $this->checkFields();
 
         switch ($request->getXmlName()) {
             case $request::XML_SCHEMA_CREATE_INVOICE:
-                if (Util::isNotBlank($this->getBank()))          $data["bank"] = $this->getBank();
-                if (Util::isNotBlank($this->getBankAccount()))   $data["bankszamlaszam"] = $this->getBankAccount();
+                if (SzamlaAgentUtil::isNotBlank($this->getBank()))          $data["bank"] = $this->getBank();
+                if (SzamlaAgentUtil::isNotBlank($this->getBankAccount()))   $data["bankszamlaszam"] = $this->getBankAccount();
 
                 $emailData = $this->getXmlEmailData();
                 if (!empty($emailData)) {
                     $data = array_merge($data, $emailData);
                 }
-                if (Util::isNotBlank($this->getSignatoryName())) $data["alairoNeve"] = $this->getSignatoryName();
+                if (SzamlaAgentUtil::isNotBlank($this->getSignatoryName())) $data["alairoNeve"] = $this->getSignatoryName();
                 break;
             case $request::XML_SCHEMA_CREATE_REVERSE_INVOICE:
                 $data = $this->getXmlEmailData();
@@ -139,9 +137,9 @@ class Seller {
      */
     protected function getXmlEmailData() {
         $data = [];
-        if (Util::isNotBlank($this->getEmailReplyTo()))  $data["emailReplyto"] = $this->getEmailReplyTo();
-        if (Util::isNotBlank($this->getEmailSubject()))  $data["emailTargy"] = $this->getEmailSubject();
-        if (Util::isNotBlank($this->getEmailContent()))  $data["emailSzoveg"] = $this->getEmailContent();
+        if (SzamlaAgentUtil::isNotBlank($this->getEmailReplyTo()))  $data["emailReplyto"] = $this->getEmailReplyTo();
+        if (SzamlaAgentUtil::isNotBlank($this->getEmailSubject()))  $data["emailTargy"] = $this->getEmailSubject();
+        if (SzamlaAgentUtil::isNotBlank($this->getEmailContent()))  $data["emailSzoveg"] = $this->getEmailContent();
         return $data;
     }
 

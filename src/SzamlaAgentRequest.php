@@ -9,7 +9,7 @@ use SzamlaAgent\Document\Document;
  *
  * @package SzamlaAgent
  */
-class Request {
+class SzamlaAgentRequest {
 
     /**
      * Sikesességet jelző válaszkód
@@ -25,17 +25,13 @@ class Request {
     const XML_BASE_URL = 'http://www.szamlazz.hu/';
 
     /**
-     * Felhasználói munkamenethez használt változó neve
-     */
-    const SESSION_CONNECTION_TYPE = 'connectionType';
-
-    /**
      * Számla Agent kérés maximális idő másodpercben
      */
     const REQUEST_TIMEOUT = 30;
 
     /**
      * Számla Agent kérés módja: natív
+     * @deprecated since 2.10.9
      */
     const CALL_METHOD_LEGACY = 1;
 
@@ -115,6 +111,10 @@ class Request {
      */
     const XML_SCHEMA_DELETE_PROFORMA = 'xmlszamladbkdel';
 
+    // Kérés engedélyezési módok
+    const REQUEST_AUTHORIZATION_BASIC_AUTH = 1;
+
+
     /**
      * @var SzamlaAgent
      */
@@ -123,7 +123,7 @@ class Request {
     /**
      * A Számla Agent kérés típusa
      *
-     * @see Request::getActionName()
+     * @see SzamlaAgentRequest::getActionName()
      * @var string
      */
     private $type;
@@ -193,6 +193,13 @@ class Request {
     private $cData = true;
 
     /**
+     * Agent kéréshez alkalmazott timeout
+     *
+     * @var int
+     */
+    private $requestTimeout;
+
+    /**
      * Számla Agent kérés létrehozása
      *
      * @param SzamlaAgent $agent
@@ -204,33 +211,46 @@ class Request {
         $this->setType($type);
         $this->setEntity($entity);
         $this->setCData(true);
+        $this->setRequestTimeout($agent->getRequestTimeout());
     }
 
     /**
      * Összeállítja a kérés elküldéséhez szükséges XML adatokat
      *
      * @throws SzamlaAgentException
-     * @throws \ReflectionException
      */
     private function buildXmlData() {
         $this->setXmlFileData($this->getType());
-        $this->agent->getLogger()->debug('XML adatok összeállítása elkezdődött.');
-
+        $agent = $this->getAgent();
+        $agent->writeLog("XML adatok összeállítása elkezdődött.", Log::LOG_LEVEL_DEBUG);
         $xmlData = $this->getEntity()->buildXmlData($this);
 
         $xml = new SimpleXMLExtended($this->getXmlBase());
         $this->arrayToXML($xmlData, $xml);
-
-        $result = Util::checkValidXml($xml->saveXML());
-        // Ha nincs hiba az XML-ben, elmentjük
-        if (empty($result)) {
-            $formatXml = Util::formatXml($xml);
+        try {
+            $result = SzamlaAgentUtil::checkValidXml($xml->saveXML());
+            if (!empty($result)) {
+                throw new SzamlaAgentException(SzamlaAgentException::XML_NOT_VALID . " a {$result[0]->line}. sorban: {$result[0]->message}. ");
+            }
+            $formatXml = SzamlaAgentUtil::formatXml($xml);
             $this->setXmlData($formatXml->saveXML());
-
-            $this->agent->getLogger()->debug('XML adatok létrehozása kész.');
-            $this->createXmlFile($formatXml);
-        } else {
-            throw new SzamlaAgentException(SzamlaAgentException::XML_NOT_VALID . " a {$result[0]->line}. sorban: {$result[0]->message}. ");
+            // Ha nincs hiba az XML-ben, elmentjük
+            $agent->writeLog("XML adatok létrehozása kész.", Log::LOG_LEVEL_DEBUG);
+            if (($agent->isXmlFileSave() && $agent->isRequestXmlFileSave()) || version_compare(PHP_VERSION, '7.4.1') <= 0) {
+                $this->createXmlFile($formatXml);
+            }
+        } catch(\Exception $e) {
+            try {
+                $formatXml = SzamlaAgentUtil::formatXml($xml);
+                $this->setXmlData($formatXml->saveXML());
+                if (!empty($this->getXmlData())) {
+                    $xmlData = $this->getXmlData();
+                }
+            } catch (\Exception $ex) {
+                // ha az adatok alapján nem állítható össze az XML, továbblépünk és naplózzuk az eredetileg beállított XML adatokat
+            }
+            $agent->writeLog(print_r($xmlData, true), Log::LOG_LEVEL_DEBUG);
+            throw new SzamlaAgentException(SzamlaAgentException::XML_DATA_BUILD_FAILED . ":  {$e->getMessage()} ");
         }
     }
 
@@ -271,14 +291,11 @@ class Request {
      * @throws \ReflectionException
      */
     private function createXmlFile(\DOMDocument $xml) {
-        $fileName = Util::getXmlFileName('request', $this->getXmlName(), $this->getEntity() );
+        $fileName = SzamlaAgentUtil::getXmlFileName('request', $this->getXmlName(), $this->getEntity() );
         $xml->save($fileName);
 
-        $this->setXmlFilePath(Util::getRealPath($fileName));
-        
-        $this->agent->getLogger()->debug('XML fájl mentése sikeres.', [
-            'file_path' => Util::getRealPath($fileName),
-        ]);
+        $this->setXmlFilePath(SzamlaAgentUtil::getRealPath($fileName));
+        $this->getAgent()->writeLog("XML fájl mentése sikeres: " . SzamlaAgentUtil::getRealPath($fileName), Log::LOG_LEVEL_DEBUG);
     }
 
     /**
@@ -329,13 +346,6 @@ class Request {
         $queryData .= "--" . $this->getDelim() . "--" . self::CRLF;
 
         $this->setPostFields($queryData);
-    }
-
-    /**
-     * Inicializálja az Agent kérés fejlécét
-     */
-    private function init() {
-        header('Content-type: text/html; charset=' . SzamlaAgent::CHARSET);
     }
 
     /**
@@ -454,80 +464,69 @@ class Request {
      * Ha nem sikerül, akkor átváltunk a legacy módra.
      *
      * @return array
+     *
+     * @throws SzamlaAgentException
      * @throws \Exception
      */
     public function send() {
-        try {
-            if(!isset($_SESSION)) {
-                session_start();
-            }
+        $this->buildXmlData();
+        $this->buildQuery();
 
-            $this->init();
-            $this->buildXmlData();
-            $this->buildQuery();
-
-            $method = $this->agent->getCallMethod();
-            switch ($method) {
-                case self::CALL_METHOD_AUTO:
-                    $response = $this->checkConnection();
-                    break;
-                case self::CALL_METHOD_CURL:
-                    $response = $this->makeCurlCall();
-                    break;
-                case self::CALL_METHOD_LEGACY:
-                    $response = $this->makeLegacyCall();
-                    break;
-                default:
-                    throw new SzamlaAgentException(SzamlaAgentException::CALL_TYPE_NOT_EXISTS . ": {$method}");
-            }
-            return $response;
-        } catch (\Exception $e) {
-            throw $e;
+        $method = $this->agent->getCallMethod();
+        switch ($method) {
+            case self::CALL_METHOD_AUTO:
+                $response = $this->checkConnection();
+                break;
+            case self::CALL_METHOD_CURL:
+                $response = $this->makeCurlCall();
+                break;
+            case self::CALL_METHOD_LEGACY:
+                $response = $this->makeLegacyCall();
+                break;
+            default:
+                throw new SzamlaAgentException(SzamlaAgentException::CALL_TYPE_NOT_EXISTS . ": {$method}");
         }
+
+        $this->checkXmlFileSave();
+        return $response;
     }
 
     /**
      * Ellenőrzi a kapcsolódási módokat és kiválasztja a legmegfelelőbbet
      *
      * @return array
+     *
      * @throws SzamlaAgentException
      * @throws \Exception
      */
     private function checkConnection() {
-        $type = self::SESSION_CONNECTION_TYPE;
         $agent = $this->getAgent();
 
-        if (!isset($_SESSION[$type])) {
-            try {
-                $ch = curl_init(SzamlaAgent::API_URL);
-                // setting ssl verification ok, defininig root certificate to validate connection to remote server
-                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-                // never ever set to false, as this carries huge security risk!!!
-                // if you experience problems with ssl validation, use legacy data call instead! (see below)
-                curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
-                curl_setopt($ch, CURLOPT_CAINFO, $agent->getCertificationFile());
-                curl_setopt($ch, CURLOPT_NOBODY, true);
-                curl_exec($ch);
+        $ch = curl_init($agent->getApiUrl());
+        // setting ssl verification ok, defininig root certificate to validate connection to remote server
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+        // never ever set to false, as this carries huge security risk!!!
+        // if you experience problems with ssl validation, use legacy data call instead! (see below)
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+        curl_setopt($ch, CURLOPT_CAINFO, $agent->getCertificationFile());
+        curl_setopt($ch, CURLOPT_NOBODY, true);
 
-                $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
+        if ($this->isBasicAuthRequest()) {
+            curl_setopt($ch, CURLOPT_USERPWD, $this->getBasicAuthUserPwd());
+        }
 
-                if ($code == self::HTTP_OK) {
-                    $_SESSION[$type] = $this->getConnectionModeName(self::CALL_METHOD_CURL);
-                    
-                    $agent->getLogger()->debug('A kapcsolódás típusa beállítva a következőre: CURL');
-                    return $this->makeCurlCall();
-                } else {
-                    $_SESSION[$type] = $this->getConnectionModeName(self::CALL_METHOD_LEGACY);
-                    $agent->getLogger()->warn('A kapcsolódás típusa beállítva a következőre: LEGACY, mert a CURL nem használható.');
-                    return $this->makeLegacyCall();
-                }
-            } catch (\Exception $e) {
-                throw $e;
-            }
-        } elseif (isset($_SESSION[$type]) && $_SESSION[$type] == $this->getConnectionModeName(self::CALL_METHOD_CURL)) {
+        curl_exec($ch);
+
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($code == self::HTTP_OK) {
+            $agent->setCallMethod(self::CALL_METHOD_CURL);
+            $agent->writeLog("A kapcsolódás típusa beállítva a következőre: CURL.", Log::LOG_LEVEL_DEBUG);
             return $this->makeCurlCall();
         } else {
+            $agent->setCallMethod(self::CALL_METHOD_LEGACY);
+            $agent->writeLog("A kapcsolódás típusa beállítva a következőre: LEGACY, mert a CURL nem használható.", Log::LOG_LEVEL_WARN);
             return $this->makeLegacyCall();
         }
     }
@@ -540,7 +539,7 @@ class Request {
         try {
             $agent = $this->getAgent();
 
-            $ch = curl_init(SzamlaAgent::API_URL);
+            $ch = curl_init($agent->getApiUrl());
 
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
@@ -551,16 +550,35 @@ class Request {
             curl_setopt($ch, CURLINFO_HEADER_OUT, true);
             curl_setopt($ch, CURLOPT_VERBOSE, true);
 
-            $xmlFile = new \CURLFile($this->getXmlFilePath());
-            $xmlFile->setPostFilename(basename($this->getXmlFilePath()));
-            $xmlFile->setMimeType('text/xml');
+            if ($this->isBasicAuthRequest()) {
+                curl_setopt($ch, CURLOPT_USERPWD, $this->getBasicAuthUserPwd());
+            }
+
+            $mimeType = 'text/xml';
+            if (($agent->isXmlFileSave() && $agent->isRequestXmlFileSave()) || version_compare(PHP_VERSION, '7.4.1') <= 0) {
+                $xmlFile = new \CURLFile($this->getXmlFilePath(), $mimeType, basename($this->getXmlFilePath()));
+            } else {
+                $xmlContent = 'data://application/octet-stream;base64,' . base64_encode($this->getXmlData());
+                $fileName = SzamlaAgentUtil::getXmlFileName('request', $this->getXmlName(), $this->getEntity());
+                $xmlFile = new \CURLFile($xmlContent, $mimeType, basename($fileName));
+            }
+
             $postFields = array($this->getFileName() => $xmlFile);
 
-            curl_setopt($ch, CURLOPT_HTTPHEADER , array(
+            $httpHeaders = array(
                 'charset: ' . SzamlaAgent::CHARSET,
                 'PHP: ' . PHP_VERSION,
                 'API: ' . SzamlaAgent::API_VERSION
-            ));
+            );
+
+            $customHttpHeaders = $agent->getCustomHTTPHeaders();
+            if (!empty($customHttpHeaders)) {
+                foreach ($customHttpHeaders as $key => $value) {
+                    $httpHeaders[] = $key . ': ' . $value;
+                }
+            }
+
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $httpHeaders);
 
             if ($this->isAttachments()) {
                 $attachments = $this->getEntity()->getAttachments();
@@ -572,10 +590,7 @@ class Request {
                             foreach ($postFields as $field) {
                                 if ($field->name === $attachments[$i]) {
                                     $isAttachable = false;
-                                    $agent->getLogger()->warn('A számlamelléklet már csatolva van.', [
-                                        'attachment_count' => $attachCount,
-                                        'attachment' => $attachments[$i],
-                                    ]);
+                                    $agent->writeLog($attachCount . ". számlamelléklet már csatolva van: " . $attachments[$i], Log::LOG_LEVEL_WARN);
                                 }
                             }
 
@@ -583,11 +598,7 @@ class Request {
                                 $attachment = new \CURLFile($attachments[$i]);
                                 $attachment->setPostFilename(basename($attachments[$i]));
                                 $postFields["attachfile" . $attachCount] = $attachment;
-
-                                $agent->getLogger()->debug('Számlamelléklet csatolva.', [
-                                    'attachment_count' => $attachCount,
-                                    'attachment' => $attachments[$i],
-                                ]);
+                                $agent->writeLog($attachCount . ". számlamelléklet csatolva: " . $attachments[$i], Log::LOG_LEVEL_DEBUG);
                             }
                         }
                     }
@@ -595,14 +606,15 @@ class Request {
             }
 
             curl_setopt($ch, CURLOPT_POSTFIELDS, $postFields);
-            curl_setopt($ch, CURLOPT_TIMEOUT, self::REQUEST_TIMEOUT);
+            curl_setopt($ch, CURLOPT_TIMEOUT, $this->getRequestTimeout());
 
             if (!empty($agent->getCookieFileName())) {
                 $cookieFile = $this->getCookieFilePath();
-                if (file_exists($cookieFile) && filesize($cookieFile > 0 && strpos(file_get_contents($cookieFile),'curl') === false)) {
+                if (file_exists($cookieFile) && filesize($cookieFile) > 0 && strpos(file_get_contents($cookieFile),'curl') === false) {
                     file_put_contents($cookieFile, "");
-                    $agent->getLogger()->debug('A cookie fájl tartalma megváltozott.');
+                    $agent->writeLog("A cookie fájl tartalma megváltozott.", Log::LOG_LEVEL_DEBUG);
                 }
+
                 curl_setopt($ch, CURLOPT_COOKIEJAR, $cookieFile);
 
                 if (file_exists($cookieFile) && filesize($cookieFile) > 0) {
@@ -610,7 +622,7 @@ class Request {
                 }
             }
 
-            $agent->getLogger()->debug('CURL adatok elküldése elkezdődött.', $this->getPostFields());
+            $agent->writeLog("CURL adatok elküldése elkezdődött: " . $this->getPostFields(), Log::LOG_LEVEL_DEBUG);
             $result = curl_exec($ch);
 
             $headerSize = curl_getinfo($ch,CURLINFO_HEADER_SIZE);
@@ -635,12 +647,9 @@ class Request {
                 }
 
                 $response['headers']['Schema-Type'] = $this->getXmlSchemaType();
-                $agent->getLogger()->debug('CURL adatok elküldése sikeresen befejeződött.', [
-                    'response' => $msg,
-                ]);
+                $agent->writeLog("CURL adatok elküldése sikeresen befejeződött: " . print_r($msg, TRUE), Log::LOG_LEVEL_DEBUG);
             }
             curl_close($ch);
-
             return $response;
         } catch (\Exception $e) {
             throw $e;
@@ -650,6 +659,8 @@ class Request {
     /**
      * @return array
      * @throws \Exception
+     *
+     * @deprecated since 2.10.9 - Use default CURL mode instead: $agent->setCallMethod(SzamlaAgentRequest::CALL_METHOD_CURL);
      */
     private function makeLegacyCall() {
         try {
@@ -669,50 +680,61 @@ class Request {
                 $cookieText = "\r\n"."Cookie: JSESSIONID=".$stored_cookies["JSESSIONID"];
             }
 
+            $httpHeaders = "Content-Type: multipart/form-data; boundary=".$this->getDelim().$cookieText."; charset= ".SzamlaAgent::CHARSET."; PHP= ".PHP_VERSION."; API= ".SzamlaAgent::API_VERSION;
+            if ($this->isBasicAuthRequest()) {
+                $httpHeaders.= "Authorization: Basic ". base64_encode($this->getBasicAuthUserPwd());
+            }
+
+            $customHttpHeaders = $agent->getCustomHTTPHeaders();
+            if (!empty($customHttpHeaders)) {
+                foreach ($customHttpHeaders as $key => $value) {
+                    $httpHeaders .= "; " . $key . "=" . $value;
+                }
+            }
+
             $context = stream_context_create(array(
                 'http' => array(
                     "method" => "POST",
-                    "header" => "Content-Type: multipart/form-data; boundary=".$this->getDelim().$cookieText."; charset= ".SzamlaAgent::CHARSET."; PHP= ".PHP_VERSION."; API= ".SzamlaAgent::API_VERSION,
+                    "header" => $httpHeaders,
                     "content" => $this->getPostFields()
                 )
             ));
 
-            $agent->getLogger()->debug('LEGACY adatok elküldése elkezdődött.', $this->getPostFields());
-            
-            $body = file_get_contents(SzamlaAgent::API_URL, false, $context);
+            $agent->writeLog("LEGACY adatok elküldése elkezdődött: " . self::CRLF . $this->getPostFields(), Log::LOG_LEVEL_DEBUG);
+            $body = file_get_contents($agent->getApiUrl(), false, $context);
 
-            foreach ($http_response_header as $header) {
-                if (preg_match('/^Set-Cookie:\s*([^;]+)/', $header, $matches)) {
-                    parse_str($matches[1], $temp);
-                    $cookies += $temp;
+            if (!empty($http_response_header)) {
+                foreach ($http_response_header as $header) {
+                    if (preg_match('/^Set-Cookie:\s*([^;]+)/', $header, $matches)) {
+                        parse_str($matches[1], $temp);
+                        $cookies += $temp;
+                    }
                 }
             }
 
             $response = array(
-                'headers' => $this->getHeadersFromResponse($http_response_header),
+                'headers' => (!empty($http_response_header) ? $this->getHeadersFromResponse($http_response_header) : array()),
                 'body'    => $body
             );
 
-            if ($response['headers']['Content-Type'] == 'application/pdf') {
+            if (isset($response['headers']) && isset($response['headers']['Content-Type']) && $response['headers']['Content-Type'] == 'application/pdf') {
                 $msg = $response['headers'];
             } else {
                 $msg = $response;
             }
             $response['headers']['Schema-Type'] = $this->getXmlSchemaType();
-            $agent->getLogger()->debug('LEGACY adatok elküldése befejeződött.', [
-                'response' => $msg
-            ]);
+            $agent->writeLog("LEGACY adatok elküldése befejeződött: " . print_r($msg, TRUE), Log::LOG_LEVEL_DEBUG);
 
             if (isset($cookieFile) && isset($cookies['JSESSIONID'])) {
                 if (file_exists($cookieFile) && filesize($cookieFile) > 0 && strpos(file_get_contents($cookieFile),'curl') !== false) {
                     file_put_contents($cookieFile, serialize($cookies));
-                    $agent->getLogger()->debug('Cookie tartalma megváltozott.');
+                    $agent->writeLog("Cookie tartalma megváltozott.", Log::LOG_LEVEL_DEBUG);
                 } elseif (file_exists($cookieFile) && filesize($cookieFile) > 0 && strpos(file_get_contents($cookieFile),'curl') === false && ($stored_cookies != $cookies)) {
                     file_put_contents($cookieFile, serialize($cookies));
-                    $agent->getLogger()->debug('Cookie tartalma megváltozott.');
+                    $agent->writeLog("Cookie tartalma megváltozott.", Log::LOG_LEVEL_DEBUG);
                 } elseif (file_exists($cookieFile) && filesize($cookieFile) == 0) {
                     file_put_contents($cookieFile, serialize($cookies));
-                    $agent->getLogger()->debug('Cookie tartalma megváltozott.');
+                    $agent->writeLog("Cookie tartalma megváltozott.", Log::LOG_LEVEL_DEBUG);
                 }
             }
             return $response;
@@ -731,7 +753,7 @@ class Request {
     private function getHeadersFromResponse($headerContent) {
         $headers = array();
         foreach ($headerContent as $index => $content) {
-            if (Util::isNotBlank($content)) {
+            if (SzamlaAgentUtil::isNotBlank($content)) {
                 if ($index === 0) {
                     $headers['http_code'] = $content;
                 } else {
@@ -751,10 +773,10 @@ class Request {
      */
     public function getCookieFilePath() {
         $fileName = $this->getAgent()->getCookieFileName();
-        if (Util::isBlank($this->getAgent()->getCookieFileName())) {
+        if (SzamlaAgentUtil::isBlank($this->getAgent()->getCookieFileName())) {
             $fileName = SzamlaAgent::COOKIE_FILENAME;
         }
-        return Util::getBasePath() . DIRECTORY_SEPARATOR . $fileName;
+        return SzamlaAgentUtil::getBasePath() . DIRECTORY_SEPARATOR . $fileName;
     }
 
     /**
@@ -781,7 +803,7 @@ class Request {
     /**
      * Beállítja a kérés típusát
      *
-     * @see   Request::getActionName()
+     * @see   SzamlaAgentRequest::getActionName()
      * @param string $type
      */
     private function setType($type) {
@@ -954,5 +976,57 @@ class Request {
             return (count($entity->getAttachments()) > 0);
         }
         return false;
+    }
+
+    /**
+     * @return bool
+     */
+    private function isBasicAuthRequest() {
+        $agent = $this->getAgent();
+        return ($agent->hasEnvironment() && $agent->getEnvironmentAuthType() == self::REQUEST_AUTHORIZATION_BASIC_AUTH);
+    }
+
+    /**
+     * @return string
+     */
+    private function getBasicAuthUserPwd() {
+        return $this->getAgent()->getEnvironmentAuthUser() . ":" . $this->getAgent()->getEnvironmentAuthPassword();
+    }
+
+    /**
+     * @return int
+     */
+    private function getRequestTimeout() {
+        if ($this->requestTimeout == 0) {
+            return self::REQUEST_TIMEOUT;
+        } else {
+            return $this->requestTimeout;
+        }
+    }
+
+    /**
+     * Agent kérés timeout beállítása (másodpercben)
+     *
+     * @param int $timeout
+     */
+    private function setRequestTimeout($timeout) {
+        $this->requestTimeout = $timeout;
+    }
+
+    /**
+     * Ellenőrzi, hogy az XML fájl menthető-e, ha nem, akkor törli.
+     *
+     * @throws SzamlaAgentException
+     */
+    private function checkXmlFileSave() {
+        if ($this->agent != null && ($this->agent->isNotXmlFileSave() || $this->agent->isNotRequestXmlFileSave())) {
+            try {
+                if (is_file($this->getXmlFilePath())) {
+                    unlink($this->getXmlFilePath());
+                }
+            } catch (\Exception $e) {
+                $this->agent->writeLog('XML fájl törlése sikertelen. ' . $e->getMessage(), Log::LOG_LEVEL_WARN);
+            }
+        }
     }
 }

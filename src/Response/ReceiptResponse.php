@@ -2,7 +2,7 @@
 
 namespace SzamlaAgent\Response;
 
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * Egy nyugta típusú bizonylat kérésére adott választ reprezentáló osztály
@@ -142,35 +142,35 @@ class ReceiptResponse {
      * @return ReceiptResponse
      */
     public static function parseData(array $data, $type = SzamlaAgentResponse::RESULT_AS_TEXT) {
-        $payer = new ReceiptResponse();
+        $response = new ReceiptResponse();
 
         if ($type == SzamlaAgentResponse::RESULT_AS_TEXT) {
             $params = $xmlData = new \SimpleXMLElement(base64_decode($data['body']));
-            $data = Util::toArray($params);
+            $data = SzamlaAgentUtil::toArray($params);
         }
 
         $base = [];
         if (isset($data['nyugta']['alap']))        $base = $data['nyugta']['alap'];
 
-        if (isset($base['id']))                    $payer->setId($base['id']);
-        if (isset($base['nyugtaszam']))            $payer->setReceiptNumber($base['nyugtaszam']);
-        if (isset($base['tipus']))                 $payer->setType($base['tipus']);
-        if (isset($base['stornozott']))            $payer->setReserved(($base['stornozott'] === 'true'));
-        if (isset($base['stornozottNyugtaszam']))  $payer->setReservedReceiptNumber($base['stornozottNyugtaszam']);
-        if (isset($base['kelt']))                  $payer->setCreated($base['kelt']);
-        if (isset($base['fizmod']))                $payer->setPaymentMethod($base['fizmod']);
-        if (isset($base['penznem']))               $payer->setCurrency($base['penznem']);
-        if (isset($base['teszt']))                 $payer->setTest(($base['teszt'] === 'true'));
-        if (isset($data['nyugta']['tetelek']))     $payer->setItems($data['nyugta']['tetelek']);
-        if (isset($data['nyugta']['osszegek']))    $payer->setAmounts($data['nyugta']['osszegek']);
-        if (isset($data['nyugta']['kifizetesek'])) $payer->setCreditNotes($data['nyugta']['kifizetesek']);
-        if (isset($data['sikeres']))               $payer->setSuccess(($data['sikeres'] === 'true'));
+        if (isset($base['id']))                    $response->setId($base['id']);
+        if (isset($base['nyugtaszam']))            $response->setReceiptNumber($base['nyugtaszam']);
+        if (isset($base['tipus']))                 $response->setType($base['tipus']);
+        if (isset($base['stornozott']))            $response->setReserved(($base['stornozott'] === 'true'));
+        if (isset($base['stornozottNyugtaszam']))  $response->setReservedReceiptNumber($base['stornozottNyugtaszam']);
+        if (isset($base['kelt']))                  $response->setCreated($base['kelt']);
+        if (isset($base['fizmod']))                $response->setPaymentMethod($base['fizmod']);
+        if (isset($base['penznem']))               $response->setCurrency($base['penznem']);
+        if (isset($base['teszt']))                 $response->setTest(($base['teszt'] === 'true'));
+        if (isset($data['nyugta']['tetelek']))     $response->setItems($data['nyugta']['tetelek']);
+        if (isset($data['nyugta']['osszegek']))    $response->setAmounts($data['nyugta']['osszegek']);
+        if (isset($data['nyugta']['kifizetesek'])) $response->setCreditNotes($data['nyugta']['kifizetesek']);
+        if (isset($data['sikeres']))               $response->setSuccess(($data['sikeres'] === 'true'));
 
-        if (isset($data['nyugtaPdf']))             $payer->setPdfData($data['nyugtaPdf']);
-        if (isset($data['hibakod']))               $payer->setErrorCode($data['hibakod']);
-        if (isset($data['hibauzenet']))            $payer->setErrorMessage($data['hibauzenet']);
+        if (isset($data['nyugtaPdf']))             $response->setPdfData($data['nyugtaPdf']);
+        if (isset($data['hibakod']))               $response->setErrorCode($data['hibakod']);
+        if (isset($data['hibauzenet']))            $response->setErrorMessage($data['hibauzenet']);
 
-        return $payer;
+        return $response;
     }
 
     /**

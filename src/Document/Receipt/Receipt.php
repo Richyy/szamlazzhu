@@ -9,8 +9,8 @@ use SzamlaAgent\Header\ReceiptHeader;
 use SzamlaAgent\Item\ReceiptItem;
 use SzamlaAgent\Seller;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\Request\Request;
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentRequest;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * Nyugta
@@ -166,12 +166,12 @@ class Receipt extends Document {
     /**
      * Összeállítja a nyugta XML adatait
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         $fields = ['beallitasok', 'fejlec'];
 
         switch ($request->getXmlName()) {
@@ -194,13 +194,13 @@ class Receipt extends Document {
     /**
      * Összeállítja és visszaadja az adott mezőkhöz tartozó adatokat
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      * @param array              $fields
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    private function buildFieldsData(Request $request, array $fields) {
+    private function buildFieldsData(SzamlaAgentRequest $request, array $fields) {
         $data = [];
 
         if (!empty($fields)) {
@@ -265,14 +265,14 @@ class Receipt extends Document {
     protected function buildXmlEmailSendingData() {
         $data = [];
 
-        if (Util::isNotNull($this->getBuyer()) && Util::isNotBlank($this->getBuyer()->getEmail())) {
+        if (SzamlaAgentUtil::isNotNull($this->getBuyer()) && SzamlaAgentUtil::isNotBlank($this->getBuyer()->getEmail())) {
             $data['email'] = $this->getBuyer()->getEmail();
         }
 
-        if (Util::isNotNull($this->getSeller())) {
-            if (Util::isNotBlank($this->getSeller()->getEmailReplyTo())) $data['emailReplyto'] = $this->getSeller()->getEmailReplyTo();
-            if (Util::isNotBlank($this->getSeller()->getEmailSubject())) $data['emailTargy']   = $this->getSeller()->getEmailSubject();
-            if (Util::isNotBlank($this->getSeller()->getEmailContent())) $data['emailSzoveg']  = $this->getSeller()->getEmailContent();
+        if (SzamlaAgentUtil::isNotNull($this->getSeller())) {
+            if (SzamlaAgentUtil::isNotBlank($this->getSeller()->getEmailReplyTo())) $data['emailReplyto'] = $this->getSeller()->getEmailReplyTo();
+            if (SzamlaAgentUtil::isNotBlank($this->getSeller()->getEmailSubject())) $data['emailTargy']   = $this->getSeller()->getEmailSubject();
+            if (SzamlaAgentUtil::isNotBlank($this->getSeller()->getEmailContent())) $data['emailSzoveg']  = $this->getSeller()->getEmailContent();
         }
         return $data;
     }

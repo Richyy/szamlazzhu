@@ -2,8 +2,6 @@
 
 namespace SzamlaAgent;
 
-use SzamlaAgent\Request\Request;
-
 /**
  * Adózó
  *
@@ -12,27 +10,45 @@ use SzamlaAgent\Request\Request;
 class TaxPayer {
 
     /**
+     * EU-n kívüli vállalkozás
+     */
+    const TAXPAYER_NON_EU_ENTERPRISE = 7;
+
+    /**
+     * EU-s vállalkozás
+     */
+    const TAXPAYER_EU_ENTERPRISE = 6;
+
+    /**
      * Társas vállalkozás (Bt., Kft., zRt.)
+     *
+     * @deprecated 2.9.5 Ne használd, helyette használd ezt: TaxPayer::TAXPAYER_HAS_TAXNUMBER.
      */
     const TAXPAYER_JOINT_VENTURE = 5;
 
     /**
      * Egyéni vállalkozó
+     *
+     * @deprecated 2.9.5 Ne használd, helyette használd ezt: TaxPayer::TAXPAYER_HAS_TAXNUMBER.
      */
     const TAXPAYER_INDIVIDUAL_BUSINESS = 4;
 
     /**
      * Adószámos magánszemély
+     *
+     * @deprecated 2.9.5 Ne használd, helyette használd ezt: TaxPayer::TAXPAYER_HAS_TAXNUMBER.
      */
     const TAXPAYER_PRIVATE_INDIVIDUAL_WITH_TAXNUMBER = 3;
 
     /**
      * Adószámos egyéb szervezet
+     *
+     * @deprecated 2.9.5 Ne használd, helyette használd ezt: TaxPayer::TAXPAYER_HAS_TAXNUMBER.
      */
     const TAXPAYER_OTHER_ORGANIZATION_WITH_TAXNUMBER = 2;
 
     /**
-     * Van adószáma
+     * Van magyar adószáma
      */
     const TAXPAYER_HAS_TAXNUMBER = 1;
 
@@ -48,11 +64,15 @@ class TaxPayer {
 
     /**
      * Magánszemély
+     *
+     * @deprecated 2.9.5 Ne használd, helyette használd ezt: TaxPayer::TAXPAYER_NO_TAXNUMBER.
      */
     const TAXPAYER_PRIVATE_INDIVIDUAL = -2;
 
     /**
      * Adószám nélküli egyéb szervezet
+     *
+     * @deprecated 2.9.5 Ne használd, helyette használd ezt: TaxPayer::TAXPAYER_NO_TAXNUMBER.
      */
     const TAXPAYER_OTHER_ORGANIZATION_WITHOUT_TAXNUMBER = -3;
 
@@ -123,10 +143,10 @@ class TaxPayer {
             $required = in_array($field, $this->getRequiredFields());
             switch ($field) {
                 case 'taxPayerType':
-                    Util::checkIntField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkIntField($field, $value, $required, __CLASS__);
                     break;
                 case 'taxPayerId':
-                    Util::checkStrFieldWithRegExp($field, $value, false, __CLASS__, '/[0-9]{8}/');
+                    SzamlaAgentUtil::checkStrFieldWithRegExp($field, $value, false, __CLASS__, '/[0-9]{8}/');
                     break;
             }
         }
@@ -148,12 +168,12 @@ class TaxPayer {
     /**
      * Összeállítja az adózó XML adatait
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         $this->checkFields();
 
         $data = [];
@@ -185,26 +205,21 @@ class TaxPayer {
     }
 
     /**
-     * Adózó milyen típusú adóalany
-     *
-     * Adott ÁFA összeg felett be kell küldeni az adóhatósághoz a számlát a NAV online rendszerében, kivéve ha a vásárló magányszemély.
+     * Adózó milyen típusú adóalany.
      * Ezt az információt a partner adatként tárolja a rendszerben, ott módosítható is.
      *
      * A következő értékeket veheti fel ez a mező:
+     *  7: TaxPayer::TAXPAYER_NON_EU_ENTERPRISE - EU-n kívüli vállalkozás
+     *  6: TaxPayer::TAXPAYER_EU_ENTERPRISE     - EU-s vállalkozás
+     *  1: TaxPayer::TAXPAYER_HAS_TAXNUMBER     - van magyar adószáma
+     *  0: TaxPayer::TAXPAYER_WE_DONT_KNOW      - nem tudjuk
+     * -1: TaxPayer::TAXPAYER_NO_TAXNUMBER      - nincs adószáma
      *
-     *  5: TaxPayer::TAXPAYER_JOINT_VENTURE                        - társas vállalkozás (Bt., Kft., zRt.)
-     *  4: TaxPayer::TAXPAYER_INDIVIDUAL_BUSINESS                  - egyéni vállalkozó
-     *  3: TaxPayer::TAXPAYER_PRIVATE_INDIVIDUAL_WITH_TAXNUMBER    - adószámos magánszemély
-     *  2: TaxPayer::TAXPAYER_OTHER_ORGANIZATION_WITH_TAXNUMBER    - adószámos egyéb szervezet
-     *  1: TaxPayer::TAXPAYER_HAS_TAXNUMBER                        - van adószáma
-     *  0: TaxPayer::TAXPAYER_WE_DONT_KNOW                         - nem tudjuk
-     * -1: TaxPayer::TAXPAYER_NO_TAXNUMBER                         - nincs adószáma
-     * -2: TaxPayer::TAXPAYER_PRIVATE_INDIVIDUAL                   - magánszemély
-     * -3: TaxPayer::TAXPAYER_OTHER_ORGANIZATION_WITHOUT_TAXNUMBER - adószám nélküli egyéb szervezet
+     * @see https://tudastar.szamlazz.hu/gyik/vevo-adoszama-szamlan
      *
      * @param int $taxPayerType
      */
     public function setTaxPayerType($taxPayerType) {
         $this->taxPayerType = $taxPayerType;
     }
- }
+}

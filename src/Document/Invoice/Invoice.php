@@ -6,12 +6,13 @@ use SzamlaAgent\Document\Document;
 use SzamlaAgent\Header\InvoiceHeader;
 use SzamlaAgent\Item\InvoiceItem;
 use SzamlaAgent\CreditNote\InvoiceCreditNote;
+use SzamlaAgent\Log;
 use SzamlaAgent\Waybill\Waybill;
 use SzamlaAgent\Buyer;
 use SzamlaAgent\Seller;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\Request\Request;
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentRequest;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * Számla
@@ -20,25 +21,20 @@ use SzamlaAgent\Util;
  */
 class Invoice extends Document {
 
-    /**
-     * Számla típus: papír számla
-     */
+    /** Számla típus: papír számla */
     const INVOICE_TYPE_P_INVOICE = 1;
 
-    /**
-     * Számla típus: e-számla
-     */
+    /** Számla típus: e-számla */
     const INVOICE_TYPE_E_INVOICE = 2;
 
-    /**
-     * Számla lekérdezése számlaszám alapján
-     */
+    /** Számla lekérdezése számlaszám alapján */
     const FROM_INVOICE_NUMBER = 1;
 
-    /**
-     * Számla lekérdezése rendelési szám alapján
-     */
+    /** Számla lekérdezése rendelési szám alapján */
     const FROM_ORDER_NUMBER = 2;
+
+    /** Számla lekérdezése külső számlaazonosító alapján */
+    const FROM_INVOICE_EXTERNAL_ID = 3;
 
     /**
      * Jóváírások maximális száma
@@ -46,10 +42,23 @@ class Invoice extends Document {
      */
     const CREDIT_NOTES_LIMIT = 5;
 
-    /**
-     * Számlához csatolandó fájlok maximális száma
-     */
+    /** Számlához csatolandó fájlok maximális száma */
     const INVOICE_ATTACHMENTS_LIMIT = 5;
+
+    /** Számlázz.hu ajánlott számlakép */
+    const INVOICE_TEMPLATE_DEFAULT = 'SzlaMost';
+
+    /** Tradicionális számlakép */
+    const INVOICE_TEMPLATE_TRADITIONAL = 'SzlaAlap';
+
+    /** Borítékbarát számlakép */
+    const INVOICE_TEMPLATE_ENV_FRIENDLY = 'SzlaNoEnv';
+
+    /** Hőnyomtatós számlakép (8 cm széles) */
+    const INVOICE_TEMPLATE_8CM = 'Szla8cm';
+
+    /** Retró kéziszámla számlakép */
+    const INVOICE_TEMPLATE_RETRO = 'SzlaTomb';
 
 
     /**
@@ -248,12 +257,12 @@ class Invoice extends Document {
     /**
      * Összeállítja a számla XML adatait
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         switch ($request->getXmlName()) {
             case $request::XML_SCHEMA_CREATE_INVOICE:
                 $data = $this->buildFieldsData($request, ['beallitasok', 'fejlec', 'elado', 'vevo', 'fuvarlevel', 'tetelek']);
@@ -282,13 +291,13 @@ class Invoice extends Document {
     /**
      * Összeállítja és visszaadja az adott mezőkhöz tartozó adatokat
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      * @param array              $fields
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    private function buildFieldsData(Request $request, array $fields) {
+    private function buildFieldsData(SzamlaAgentRequest $request, array $fields) {
         $data = [];
 
         if (!empty($fields)) {
@@ -297,9 +306,9 @@ class Invoice extends Document {
                     case 'beallitasok': $value = $request->getAgent()->getSetting()->buildXmlData($request); break;
                     case 'fejlec':      $value = $this->getHeader()->buildXmlData($request); break;
                     case 'tetelek':     $value = $this->buildXmlItemsData(); break;
-                    case 'elado':       $value = (Util::isNotNull($this->getSeller()))  ? $this->getSeller()->buildXmlData($request)  : array(); break;
-                    case 'vevo':        $value = (Util::isNotNull($this->getBuyer()))   ? $this->getBuyer()->buildXmlData($request)   : array(); break;
-                    case 'fuvarlevel':  $value = (Util::isNotNull($this->getWaybill())) ? $this->getWaybill()->buildXmlData($request) : array(); break;
+                    case 'elado':       $value = (SzamlaAgentUtil::isNotNull($this->getSeller()))  ? $this->getSeller()->buildXmlData($request)  : array(); break;
+                    case 'vevo':        $value = (SzamlaAgentUtil::isNotNull($this->getBuyer()))   ? $this->getBuyer()->buildXmlData($request)   : array(); break;
+                    case 'fuvarlevel':  $value = (SzamlaAgentUtil::isNotNull($this->getWaybill())) ? $this->getWaybill()->buildXmlData($request) : array(); break;
                     default:
                         throw new SzamlaAgentException(SzamlaAgentException::XML_KEY_NOT_EXISTS . ": {$key}");
                 }
@@ -370,7 +379,7 @@ class Invoice extends Document {
      */
     public function addAttachment($filePath) {
         if (empty($filePath)) {
-            trigger_error('A csatolandó fájl neve nincs megadva!', E_USER_WARNING);
+            Log::writeLog("A csatolandó fájl neve nincs megadva!", Log::LOG_LEVEL_WARN);
         } else {
             if (count($this->attachments) >= self::INVOICE_ATTACHMENTS_LIMIT) {
                 throw new SzamlaAgentException('A következő fájl csatolása sikertelen: "' . $filePath. '". Egy számlához maximum ' . self::INVOICE_ATTACHMENTS_LIMIT . ' fájl csatolható!');

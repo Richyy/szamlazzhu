@@ -10,7 +10,7 @@ namespace SzamlaAgent;
 class BuyerLedger {
 
     /**
-     * Vevő azonosító
+     * vevő gazdasági esemény azonosító
      *
      * @var string
      */
@@ -54,7 +54,7 @@ class BuyerLedger {
     /**
      * Vevő főkönyvi adatok példányosítása
      *
-     * @param string    $buyerId              vevő azonosító
+     * @param string    $buyerId              vevő gazdasági esemény azonosító
      * @param string    $bookingDate          könyvelés dátum
      * @param string    $buyerLedgerNumber    vevő főkönyvi szám
      * @param boolean   $continuedFulfillment folyamatos teljesítés
@@ -81,14 +81,14 @@ class BuyerLedger {
                 case 'bookingDate':
                 case 'settlementPeriodStart':
                 case 'settlementPeriodEnd':
-                    Util::checkDateField($field, $value, false, __CLASS__);
+                    SzamlaAgentUtil::checkDateField($field, $value, false, __CLASS__);
                     break;
                 case 'continuedFulfillment':
-                    Util::checkBoolField($field, $value, false, __CLASS__);
+                    SzamlaAgentUtil::checkBoolField($field, $value, false, __CLASS__);
                     break;
                 case 'buyerId':
                 case 'buyerLedgerNumber':
-                    Util::checkStrField($field, $value, false, __CLASS__);
+                    SzamlaAgentUtil::checkStrField($field, $value, false, __CLASS__);
                     break;
             }
         }
@@ -115,18 +115,18 @@ class BuyerLedger {
         $data = [];
         $this->checkFields();
 
-        if (Util::isNotBlank($this->getBookingDate()))           $data['konyvelesDatum'] = $this->getBookingDate();
-        if (Util::isNotBlank($this->getBuyerId()))               $data['vevoAzonosito'] = $this->getBuyerId();
-        if (Util::isNotBlank($this->getBuyerLedgerNumber()))     $data['vevoFokonyviSzam'] = $this->getBuyerLedgerNumber();
+        if (SzamlaAgentUtil::isNotBlank($this->getBookingDate()))           $data['konyvelesDatum'] = $this->getBookingDate();
+        if (SzamlaAgentUtil::isNotBlank($this->getBuyerId()))               $data['vevoAzonosito'] = $this->getBuyerId();
+        if (SzamlaAgentUtil::isNotBlank($this->getBuyerLedgerNumber()))     $data['vevoFokonyviSzam'] = $this->getBuyerLedgerNumber();
         if ($this->isContinuedFulfillment())                                $data['folyamatosTelj'] = $this->isContinuedFulfillment();
-        if (Util::isNotBlank($this->getSettlementPeriodStart())) $data['elszDatumTol'] = $this->getSettlementPeriodStart();
-        if (Util::isNotBlank($this->getSettlementPeriodEnd()))   $data['elszDatumIg'] = $this->getSettlementPeriodEnd();
+        if (SzamlaAgentUtil::isNotBlank($this->getSettlementPeriodStart())) $data['elszDatumTol'] = $this->getSettlementPeriodStart();
+        if (SzamlaAgentUtil::isNotBlank($this->getSettlementPeriodEnd()))   $data['elszDatumIg'] = $this->getSettlementPeriodEnd();
 
         return $data;
     }
 
     /**
-     * Visszaadja az egyedi azonosítót
+     * Visszaadja a vevő gazdasági esemény azonosítót
      *
      * @return string
      */
@@ -135,7 +135,7 @@ class BuyerLedger {
     }
 
     /**
-     * Beállítja az egyedi azonosítót
+     * Beállítja a vevő gazdasági esemény azonosítót
      *
      * @param string $buyerId
      */

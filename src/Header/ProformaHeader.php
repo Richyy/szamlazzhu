@@ -3,8 +3,8 @@
 namespace SzamlaAgent\Header;
 
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\Request\Request;
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentRequest;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * Díjbekérő fejléc
@@ -35,12 +35,12 @@ class ProformaHeader extends InvoiceHeader {
      * Csak azokat az XML mezőket adjuk hozzá, amelyek kötelezőek,
      * illetve amelyek opcionálisak, de ki vannak töltve.
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         try {
             if (empty($request)) {
                 throw new SzamlaAgentException(SzamlaAgentException::XML_DATA_NOT_AVAILABLE);
@@ -49,8 +49,8 @@ class ProformaHeader extends InvoiceHeader {
             $data = [];
             switch ($request->getXmlName()) {
                 case $request::XML_SCHEMA_DELETE_PROFORMA:
-                    if (Util::isNotBlank($this->getInvoiceNumber())) $data["szamlaszam"] = $this->getInvoiceNumber();
-                    if (Util::isNotBlank($this->getOrderNumber())) $data["rendelesszam"] = $this->getOrderNumber();
+                    if (SzamlaAgentUtil::isNotBlank($this->getInvoiceNumber())) $data["szamlaszam"] = $this->getInvoiceNumber();
+                    if (SzamlaAgentUtil::isNotBlank($this->getOrderNumber())) $data["rendelesszam"] = $this->getOrderNumber();
                     $this->checkFields();
                     break;
                 default:

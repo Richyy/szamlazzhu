@@ -5,7 +5,17 @@ namespace SzamlaAgent\Response;
 /**
  * Egy adózó adatainak lekérésére adott választ reprezentáló osztály
  *
+ * FONTOS! Az adatok a NAV-tól érkeznek. A NAV bármikor változtathat az interface-en,
+ * illetve nem minden esetben adnak vissza címadatokat, így erre is fel kell készítened a kódot.
+ *
+ * Ha üzleti logikát építesz erre az interface-re, akkor javasoljuk saját XML feldolgozóval kezelni
+ * a NAV-tól érkező adatokat, felkészítve arra, hogy a NAV bármikor megváltoztathatja annak szerkezetét!
+ *
+ * A NAV-tól érkező nyers adatokat az alábbi példafájlban található módon kérdezheted le:
+ * @see examples/get_taxpayer.php
+ *
  * @package SzamlaAgent\Response
+ * @deprecated 2.9.10, use your own XML processor
  */
 class TaxPayerResponse {
 
@@ -45,55 +55,6 @@ class TaxPayerResponse {
     protected $taxpayerValidity;
 
     /**
-     * Adózó neve
-     *
-     * @var string
-     */
-    protected $taxpayerName;
-
-    /**
-     * Adózói címének országa
-     *
-     * @var string
-     */
-    protected $countryCode;
-
-    /**
-     * Adózó címének irányítószáma
-     *
-     * @var string
-     */
-    protected $postalCode;
-
-    /**
-     * Adózói címének városa
-     *
-     * @var string
-     */
-    protected $city;
-
-    /**
-     * Adózói címének közterület elnevezése
-     *
-     * @var string
-     */
-    protected $streetName;
-
-    /**
-     * Adózó címének közterület típusa
-     *
-     * @var string
-     */
-    protected $publicPlaceCategory;
-
-    /**
-     * Adózó címének házszáma
-     *
-     * @var string
-     */
-    protected $number;
-
-    /**
      * A válaszban visszakapott adózói adatok
      *
      * @var array
@@ -117,18 +78,8 @@ class TaxPayerResponse {
 
     /**
      * Adózó lekérdezésének adatai
-     *
-     * @param string $taxpayerName
-     * @param string $countryCode
-     * @param string $postalCode
-     * @param string $city
      */
-    function __construct($taxpayerName = '', $countryCode = '', $postalCode = '', $city = '') {
-        $this->setTaxpayerName($taxpayerName);
-        $this->setCountryCode($countryCode);
-        $this->setPostalCode($postalCode);
-        $this->setCity($city);
-    }
+    function __construct() {}
 
     /**
      * Feldolgozás után visszaadja az adózó válaszát objektumként
@@ -153,17 +104,7 @@ class TaxPayerResponse {
         }
 
         if (isset($data['taxpayerData'])) {
-            $payerData = $data['taxpayerData'];
-            $address = $payerData['taxpayerAddress'];
-
-            $payer->setTaxpayerName($payerData['taxpayerName']);
-            $payer->setCountryCode($address['countryCode']);
-            $payer->setPostalCode($address['postalCode']);
-            $payer->setCity($address['city']);
-            $payer->setStreetName($address['streetName']);
-            $payer->setPublicPlaceCategory($address['publicPlaceCategory']);
-            $payer->setNumber($address['number']);
-            $payer->setTaxPayerData($payerData);
+            $payer->setTaxPayerData($data['taxpayerData']);
         }
         return $payer;
     }
@@ -249,123 +190,12 @@ class TaxPayerResponse {
     }
 
     /**
-     * Visszaadja az adózó nevét
-     *
-     * @return string
-     */
-    public function getTaxpayerName() {
-        return $this->taxpayerName;
-    }
-
-    /**
-     * @param string $taxpayerName
-     */
-    protected function setTaxpayerName($taxpayerName) {
-        $this->taxpayerName = $taxpayerName;
-    }
-
-    /**
-     * Visszaadja az adózó címének országát
-     *
-     * @return string
-     */
-    public function getCountryCode() {
-        return $this->countryCode;
-    }
-
-    /**
-     * @param string $countryCode
-     */
-    protected function setCountryCode($countryCode) {
-        $this->countryCode = $countryCode;
-    }
-
-    /**
-     * Visszaadja az adózó címének irányítószámát
-     * @return string
-     */
-    public function getPostalCode() {
-        return $this->postalCode;
-    }
-
-    /**
-     * @param string $postalCode
-     */
-    protected function setPostalCode($postalCode) {
-        $this->postalCode = $postalCode;
-    }
-
-    /**
-     * Visszaadja az adózó címének városát
-     *
-     * @return string
-     */
-    public function getCity() {
-        return $this->city;
-    }
-
-    /**
-     * @param string $city
-     */
-    protected function setCity($city) {
-        $this->city = $city;
-    }
-
-    /**
      * Visszaadja, hogy a válaszban vannak-e adózói adatok
      *
      * @return bool
      */
     public function hasTaxPayerData() {
         return (!empty($this->taxPayerData));
-    }
-
-    /**
-     * Visszaadja az adózó címének közterület elnevezését
-     *
-     * @return string
-     */
-    public function getStreetName() {
-        return $this->streetName;
-    }
-
-    /**
-     * @param string $streetName
-     */
-    protected function setStreetName($streetName) {
-        $this->streetName = $streetName;
-    }
-
-    /**
-     * Visszaadja az adózó címének közterület típusát
-     *
-     * @return string
-     */
-    public function getPublicPlaceCategory() {
-        return $this->publicPlaceCategory;
-    }
-
-    /**
-     * @param string $publicPlaceCategory
-     */
-    protected function setPublicPlaceCategory($publicPlaceCategory) {
-        $this->publicPlaceCategory = $publicPlaceCategory;
-    }
-
-    /**
-     * Visszaadja az adózó címének házszámát
-     *
-     * @return string
-     */
-    public function getNumber() {
-        return $this->number;
-    }
-
-    /**
-     * @param string $number
-     */
-    protected function setNumber($number) {
-        $this->number = $number;
     }
 
     /**
@@ -435,22 +265,12 @@ class TaxPayerResponse {
     }
 
     /**
-     * Visszaadja az adózó adatait
-     *
      * @return string
      */
-    public function getTaxPayerStr() {
-        $validity = ($this->isTaxpayerValidity()) ? 'érvényes' : "érvénytelen";
-
-        $str = '';
-        if (!empty($this->getTaxPayerData())) {
-            $str = "Adózó adatai:" . PHP_EOL;
-            $str.= "Név: {$this->getTaxpayerName()} (" . $validity . ")" . PHP_EOL;
-            $str.= "Cím: {$this->getCountryCode()} {$this->getPostalCode()} {$this->getCity()}, {$this->getStreetName()} {$this->getPublicPlaceCategory()} {$this->getNumber()} ";
-        } else {
-            if ($this->getFuncCode()) {
-                $str = "Ehhez az adószámhoz nem található adat!";
-            }
+    public function toString() {
+        $str = "Adószám érvényessége: " . (($this->isTaxpayerValidity()) ? 'érvényes' : "érvénytelen");
+        if (empty($this->getTaxPayerData()) && $this->getFuncCode()) {
+            $str.= ", az adószámhoz nem található adat!";
         }
         return $str;
     }

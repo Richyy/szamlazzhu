@@ -52,26 +52,26 @@ class ProformaDeletionResponse {
      * @return ProformaDeletionResponse
      */
     public static function parseData(array $data) {
-        $payer   = new ProformaDeletionResponse();
+        $response   = new ProformaDeletionResponse();
         $headers = $data['headers'];
 
         if (!empty($headers)) {
-            $payer->setHeaders($headers);
+            $response->setHeaders($headers);
 
             if (array_key_exists('szlahu_error', $headers)) {
                 $error = urldecode($headers['szlahu_error']);
-                $payer->setErrorMessage($error);
+                $response->setErrorMessage($error);
             }
 
             if (array_key_exists('szlahu_error_code', $headers)) {
-                $payer->setErrorCode($headers['szlahu_error_code']);
+                $response->setErrorCode($headers['szlahu_error_code']);
             }
 
-            if ($payer->isNotError()) {
-                $payer->setSuccess(true);
+            if ($response->isNotError()) {
+                $response->setSuccess(true);
             }
         }
-        return $payer;
+        return $response;
     }
 
     /**

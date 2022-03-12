@@ -2,9 +2,9 @@
 
 namespace SzamlaAgent\Waybill;
 
-use SzamlaAgent\Request\Request;
+use SzamlaAgent\SzamlaAgentRequest;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * Transoflex fuvarlevél
@@ -80,14 +80,14 @@ class TransoflexWaybill extends Waybill {
         if (property_exists($this, $field)) {
             switch ($field) {
                 case 'packetNumber':
-                    Util::checkIntField($field, $value, false, __CLASS__);
+                    SzamlaAgentUtil::checkIntField($field, $value, false, __CLASS__);
                     break;
                 case 'id':
                 case 'shippingId':
                 case 'countryCode':
                 case 'zip':
                 case 'service':
-                    Util::checkStrField($field, $value, false, __CLASS__);
+                    SzamlaAgentUtil::checkStrField($field, $value, false, __CLASS__);
                     break;
             }
         }
@@ -95,22 +95,22 @@ class TransoflexWaybill extends Waybill {
     }
 
     /**
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         $this->checkFields(get_class());
         $data = parent::buildXmlData($request);
 
         $data['tof'] = [];
-        if (Util::isNotBlank($this->getId()))           $data['tof']['azonosito'] = $this->getId();
-        if (Util::isNotBlank($this->getShippingId()))   $data['tof']['shippingID'] = $this->getShippingId();
-        if (Util::isNotNull($this->getPacketNumber()))  $data['tof']['csomagszam'] = $this->getPacketNumber();
-        if (Util::isNotBlank($this->getCountryCode()))  $data['tof']['countryCode'] = $this->getCountryCode();
-        if (Util::isNotBlank($this->getZip()))          $data['tof']['zip'] = $this->getZip();
-        if (Util::isNotBlank($this->getService()))      $data['tof']['service'] = $this->getService();
+        if (SzamlaAgentUtil::isNotBlank($this->getId()))           $data['tof']['azonosito'] = $this->getId();
+        if (SzamlaAgentUtil::isNotBlank($this->getShippingId()))   $data['tof']['shippingID'] = $this->getShippingId();
+        if (SzamlaAgentUtil::isNotNull($this->getPacketNumber()))  $data['tof']['csomagszam'] = $this->getPacketNumber();
+        if (SzamlaAgentUtil::isNotBlank($this->getCountryCode()))  $data['tof']['countryCode'] = $this->getCountryCode();
+        if (SzamlaAgentUtil::isNotBlank($this->getZip()))          $data['tof']['zip'] = $this->getZip();
+        if (SzamlaAgentUtil::isNotBlank($this->getService()))      $data['tof']['service'] = $this->getService();
 
         return $data;
     }

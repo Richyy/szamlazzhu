@@ -4,8 +4,8 @@ namespace SzamlaAgent\Header;
 
 use SzamlaAgent\Document\Document;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\Request\Request;
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentRequest;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * Nyugta fejléc
@@ -134,7 +134,7 @@ class ReceiptHeader extends DocumentHeader {
             $required = in_array($field, $this->getRequiredFields());
             switch ($field) {
                 case 'exchangeRate':
-                    Util::checkDoubleField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkDoubleField($field, $value, $required, __CLASS__);
                     break;
                 case 'receiptNumber':
                 case 'callId':
@@ -145,7 +145,7 @@ class ReceiptHeader extends DocumentHeader {
                 case 'comment':
                 case 'pdfTemplate':
                 case 'buyerLedgerId':
-                    Util::checkStrField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkStrField($field, $value, $required, __CLASS__);
                     break;
             }
         }
@@ -167,12 +167,12 @@ class ReceiptHeader extends DocumentHeader {
     /**
      * Összeállítja a bizonylat elkészítéséhez szükséges XML fejléc adatokat
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    public function buildXmlData(Request $request) {
+    public function buildXmlData(SzamlaAgentRequest $request) {
         try {
             if (empty($request)) {
                 throw new SzamlaAgentException(SzamlaAgentException::XML_DATA_NOT_AVAILABLE);
@@ -209,13 +209,13 @@ class ReceiptHeader extends DocumentHeader {
     /**
      * Összeállítja és visszaadja az adott mezőkhöz tartozó adatokat
      *
-     * @param Request $request
+     * @param SzamlaAgentRequest $request
      * @param array              $fields
      *
      * @return array
      * @throws SzamlaAgentException
      */
-    private function buildFieldsData(Request $request, array $fields) {
+    private function buildFieldsData(SzamlaAgentRequest $request, array $fields) {
         $data = [];
 
         if (empty($request) || !empty($field)) {
@@ -224,15 +224,15 @@ class ReceiptHeader extends DocumentHeader {
 
         foreach ($fields as $key) {
             switch ($key) {
-                case 'hivasAzonosito': $value = (Util::isNotBlank($this->getCallId())) ? $this->getCallId() : null; break;
+                case 'hivasAzonosito': $value = (SzamlaAgentUtil::isNotBlank($this->getCallId())) ? $this->getCallId() : null; break;
                 case 'elotag':         $value = $this->getPrefix(); break;
                 case 'fizmod':         $value = $this->getPaymentMethod(); break;
                 case 'penznem':        $value = $this->getCurrency(); break;
-                case 'devizabank':     $value = (Util::isNotBlank($this->getExchangeBank())) ? $this->getExchangeBank() : null; break;
-                case 'devizaarf':      $value = (Util::isNotNull($this->getExchangeRate())) ? Util::doubleFormat($this->getExchangeRate()) : null; break;
-                case 'megjegyzes':     $value = (Util::isNotBlank($this->getComment())) ? $this->getComment() : null; break;
-                case 'pdfSablon':      $value = (Util::isNotBlank($this->getPdfTemplate())) ? $this->getPdfTemplate() : null; break;
-                case 'fokonyvVevo':    $value = (Util::isNotBlank($this->getBuyerLedgerId())) ? $this->getBuyerLedgerId() : null; break;
+                case 'devizabank':     $value = (SzamlaAgentUtil::isNotBlank($this->getExchangeBank())) ? $this->getExchangeBank() : null; break;
+                case 'devizaarf':      $value = (SzamlaAgentUtil::isNotNull($this->getExchangeRate())) ? SzamlaAgentUtil::doubleFormat($this->getExchangeRate()) : null; break;
+                case 'megjegyzes':     $value = (SzamlaAgentUtil::isNotBlank($this->getComment())) ? $this->getComment() : null; break;
+                case 'pdfSablon':      $value = (SzamlaAgentUtil::isNotBlank($this->getPdfTemplate())) ? $this->getPdfTemplate() : null; break;
+                case 'fokonyvVevo':    $value = (SzamlaAgentUtil::isNotBlank($this->getBuyerLedgerId())) ? $this->getBuyerLedgerId() : null; break;
                 case 'nyugtaszam':     $value = $this->getReceiptNumber(); break;
                 default:
                     throw new SzamlaAgentException(SzamlaAgentException::XML_KEY_NOT_EXISTS . ": {$key}");
@@ -340,6 +340,12 @@ class ReceiptHeader extends DocumentHeader {
     }
 
     /**
+     * Nyugta sorszám beállítása
+     *
+     * A nyugta létrehozásánál ne használd, mert a kiállított nyugták számait a Számlázz.hu
+     * a jogszabálynak megfelelően automatikusan osztja ki: 1-től indulva, kihagyásmentesen.
+     * @see https://tudastar.szamlazz.hu/gyik/szamlaszam-formatumok-mikor-kell-megadni
+     *
      * @param string $receiptNumber
      */
     public function setReceiptNumber($receiptNumber) {

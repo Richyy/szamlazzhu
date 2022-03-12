@@ -4,7 +4,7 @@ namespace SzamlaAgent\CreditNote;
 
 use SzamlaAgent\Document\Document;
 use SzamlaAgent\SzamlaAgentException;
-use SzamlaAgent\Util;
+use SzamlaAgent\SzamlaAgentUtil;
 
 /**
  * Számla jóváírás
@@ -54,14 +54,14 @@ class InvoiceCreditNote extends CreditNote {
             $required = in_array($field, $this->getRequiredFields());
             switch ($field) {
                 case 'date':
-                    Util::checkDateField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkDateField($field, $value, $required, __CLASS__);
                     break;
                 case 'amount':
-                    Util::checkDoubleField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkDoubleField($field, $value, $required, __CLASS__);
                     break;
                 case 'paymentMode':
                 case 'description':
-                    Util::checkStrField($field, $value, $required, __CLASS__);
+                    SzamlaAgentUtil::checkStrField($field, $value, $required, __CLASS__);
                     break;
             }
         }
@@ -88,10 +88,10 @@ class InvoiceCreditNote extends CreditNote {
         $data = [];
         $this->checkFields();
 
-        if (Util::isNotBlank($this->getDate()))        $data['datum']  = $this->getDate();
-        if (Util::isNotBlank($this->getPaymentMode())) $data['jogcim'] = $this->getPaymentMode();
-        if (Util::isNotNull($this->getAmount()))       $data['osszeg'] = Util::doubleFormat($this->getAmount());
-        if (Util::isNotBlank($this->getDescription())) $data['leiras'] = $this->getDescription();
+        if (SzamlaAgentUtil::isNotBlank($this->getDate()))        $data['datum']  = $this->getDate();
+        if (SzamlaAgentUtil::isNotBlank($this->getPaymentMode())) $data['jogcim'] = $this->getPaymentMode();
+        if (SzamlaAgentUtil::isNotNull($this->getAmount()))       $data['osszeg'] = SzamlaAgentUtil::doubleFormat($this->getAmount());
+        if (SzamlaAgentUtil::isNotBlank($this->getDescription())) $data['leiras'] = $this->getDescription();
 
         return $data;
     }
