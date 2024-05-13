@@ -52,6 +52,13 @@ class InvoiceResponse {
     protected $invoiceNumber;
 
     /**
+     * Számla azonosító
+     *
+     * @var int
+     */
+    protected $invoiceIdentifier;
+
+    /**
      * A válasz hibakódja
      *
      * @var string
@@ -105,7 +112,7 @@ class InvoiceResponse {
      */
     public static function parseData(array $data, $type = SzamlaAgentResponse::RESULT_AS_TEXT) {
         $response   = new InvoiceResponse();
-        $headers = $data['headers'];
+        $headers = array_change_key_case($data['headers'], CASE_LOWER);
         $isPdf   = self::isPdfResponse($data);
         $pdfFile = '';
 
@@ -120,6 +127,10 @@ class InvoiceResponse {
 
             if (array_key_exists('szlahu_szamlaszam', $headers)) {
                 $response->setInvoiceNumber($headers['szlahu_szamlaszam']);
+            }
+
+            if (array_key_exists('szlahu_id', $headers)) {
+                $response->setInvoiceIdentifier($headers['szlahu_id']);
             }
 
             if (array_key_exists('szlahu_vevoifiokurl', $headers)) {
@@ -170,11 +181,11 @@ class InvoiceResponse {
             return true;
         }
 
-        if (isset($result['headers']['Content-Type']) && $result['headers']['Content-Type'] == 'application/pdf') {
+        if (isset($result['headers']['content-type']) && $result['headers']['content-type'] == 'application/pdf') {
             return true;
         }
 
-        if (isset($result['headers']['Content-Disposition']) && stripos($result['headers']['Content-Disposition'],'pdf') !== false) {
+        if (isset($result['headers']['content-disposition']) && stripos($result['headers']['content-disposition'],'pdf') !== false) {
             return true;
         }
         return false;
@@ -215,6 +226,22 @@ class InvoiceResponse {
     }
 
     /**
+     * Visszaadja a számla azonosítót
+     *
+     * @return int
+     */
+    public function getInvoiceIdentifier() {
+        return $this->invoiceIdentifier;
+    }
+
+    /**
+     * @param int $invoiceIdentifier
+     */
+    protected function setInvoiceIdentifier($invoiceIdentifier) {
+        $this->invoiceIdentifier = $invoiceIdentifier;
+    }
+
+    /**
      * Visszaadja a válasz hibakódját
      *
      * @return string
@@ -247,10 +274,11 @@ class InvoiceResponse {
     }
 
     /**
-     * @return bool|string
+     * @return false|string
      */
     public function getPdfFile() {
-        return base64_decode($this->getPdfData());
+        $pdfData = SzamlaAgentUtil::isNotNull($this->getPdfData()) ? $this->getPdfData() : '';
+        return base64_decode($pdfData);
     }
 
     /**
@@ -286,7 +314,7 @@ class InvoiceResponse {
     public function isError() {
         $result = false;
         if (!empty($this->getErrorMessage()) || !empty($this->getErrorCode())) {
-           $result = true;
+            $result = true;
         }
         // Ha a számlaértesítő kézbesítése sikertelen volt, de a válasz tartalmaz számlaszámot, akkor a számla kiállítása sikeres.
         if ($this->hasInvoiceNumber() && $this->hasInvoiceNotificationSendError()) {

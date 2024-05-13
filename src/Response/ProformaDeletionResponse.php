@@ -53,7 +53,7 @@ class ProformaDeletionResponse {
      */
     public static function parseData(array $data) {
         $response   = new ProformaDeletionResponse();
-        $headers = $data['headers'];
+        $headers = array_change_key_case($data['headers'], CASE_LOWER);
 
         if (!empty($headers)) {
             $response->setHeaders($headers);

@@ -12,14 +12,12 @@ class SzamlaAgentException extends \Exception {
     const SYSTEM_DOWN                            = 'Az oldal jelenleg karbantartás alatt áll. Kérjük, látogass vissza pár perc múlva.';
     const REQUEST_TYPE_NOT_EXISTS                = 'A kérés típusa nem létezik';
     const RESPONSE_TYPE_NOT_EXISTS               = 'A válasz típusa nem létezik';
-    const CALL_TYPE_NOT_EXISTS                   = 'Nem létező hívás típus';
     const XML_SCHEMA_TYPE_NOT_EXISTS             = 'Az XML séma típusa nem létezik';
     const XML_KEY_NOT_EXISTS                     = 'XML kulcs nem létezik';
     const XML_NOT_VALID                          = 'Az összeállított XML nem érvényes';
     const XML_DATA_NOT_AVAILABLE                 = 'Hiba történt az XML adatok összeállításánál: nincs adat.';
     const XML_DATA_BUILD_FAILED                  = 'Az XML adatok összeállítása sikertelen';
     const FIELDS_CHECK_ERROR                     = 'Hiba a mezők ellenőrzése közben';
-    const CONNECTION_METHOD_CANNOT_BE_DETERMINED = 'A kapcsolódási mód típusa nem meghatározható';
     const DATE_FORMAT_NOT_EXISTS                 = 'Nincs ilyen dátum formátum';
     const NO_AGENT_INSTANCE_WITH_USERNAME        = 'Nincs ilyen felhasználónévvel Számla Agent példányosítva!';
     const NO_AGENT_INSTANCE_WITH_APIKEY          = 'Nincs ilyen kulccsal Számla Agent példányosítva!';
@@ -33,10 +31,11 @@ class SzamlaAgentException extends \Exception {
     const AGENT_ERROR                            = 'Agent hiba';
     const FILE_CREATION_FAILED                   = 'A fájl létrehozása sikertelen.';
     const ATTACHMENT_NOT_EXISTS                  = 'A csatolandó fájl nem létezik';
-    const SENDING_ATTACHMENT_NOT_ALLOWED         = 'Számlamelléklet csatolása csak CURL kérés esetén támogatott!';
     const INVOICE_NOTIFICATION_SEND_FAILED       = 'Számlaértesítő kézbesítése sikertelen';
     const INVALID_JSON                           = 'Érvénytelen JSON';
     const INVOICE_EXTERNAL_ID_IS_EMPTY           = 'A külső számlaazonosító üres';
+    const CONNECTION_ERROR                       = 'Sikertelen kapcsolódás';
+    const XML_FILE_SAVE_FAILED                   = 'XML fálj mentése sikertelen';
 
     /**
      * Számla Agent egyedi kivétel létrehozása

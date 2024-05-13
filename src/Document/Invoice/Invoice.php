@@ -49,10 +49,10 @@ class Invoice extends Document {
     const INVOICE_TEMPLATE_DEFAULT = 'SzlaMost';
 
     /** Tradicionális számlakép */
-    const INVOICE_TEMPLATE_TRADITIONAL = 'SzlaAlap';
+    const INVOICE_TEMPLATE_TRADITIONAL = 'SzlaNoEnv';
 
     /** Borítékbarát számlakép */
-    const INVOICE_TEMPLATE_ENV_FRIENDLY = 'SzlaNoEnv';
+    const INVOICE_TEMPLATE_ENV_FRIENDLY = 'SzlaAlap';
 
     /** Hőnyomtatós számlakép (8 cm széles) */
     const INVOICE_TEMPLATE_8CM = 'Szla8cm';

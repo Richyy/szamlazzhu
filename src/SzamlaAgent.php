@@ -26,7 +26,7 @@ class SzamlaAgent {
     /**
      * Számla Agent API aktuális verzió
      */
-    const API_VERSION = '2.10.11';
+    const API_VERSION = '2.10.18';
 
     /**
      * Számla Agent API url
@@ -44,21 +44,6 @@ class SzamlaAgent {
     const CHARSET = 'utf-8';
 
     /**
-     * Alapértelmezett süti fájlnév
-     */
-    const COOKIE_FILENAME = 'cookie.txt';
-
-    /**
-     * Alapértelmezett tanúsítvány fájlnév
-     */
-    const CERTIFICATION_FILENAME = 'cacert.pem';
-
-    /**
-     * Tanúsítványok útvonala
-     */
-    const CERTIFICATION_PATH = './cert';
-
-    /**
      * PDF dokumentumok útvonala
      */
     const PDF_FILE_SAVE_PATH = './pdf';
@@ -72,7 +57,6 @@ class SzamlaAgent {
      * Fájl mellékletek útvonala
      */
     const ATTACHMENTS_SAVE_PATH = './attachments';
-
 
     /**
      * Naplózási szint
@@ -93,24 +77,6 @@ class SzamlaAgent {
      * @var string
      */
     private $logEmail = '';
-
-    /**
-     * Számla Agent kérés módja
-     *
-     * 1: CALL_METHOD_LEGACY - natív
-     * 2: CALL_METHOD_CURL   - CURL
-     * 3: CALL_METHOD_AUTO   - automatikus
-     *
-     * @var int
-     */
-    private $callMethod = SzamlaAgentRequest::CALL_METHOD_CURL;
-
-    /**
-     * Cookie fájlnév
-     *
-     * @var string
-     */
-    private $cookieFileName = self::COOKIE_FILENAME;
 
     /**
      * Számla Agent beállítások
@@ -193,12 +159,9 @@ class SzamlaAgent {
     protected $environment = array();
 
     /**
-     * Tanúsítvány útvonal
-     *
-     * @var string
+     * @var CookieHandler
      */
-    private $certificationPath = self::CERTIFICATION_PATH;
-
+    private $cookieHandler;
 
     /**
      * Számla Agent létrehozása
@@ -211,12 +174,11 @@ class SzamlaAgent {
      * @param int    $responseType válasz típusa (szöveges vagy XML)
      * @param string $aggregator   webáruházat futtató motor neve
      *
-     * @throws SzamlaAgentException
      */
     protected function __construct($username, $password, $apiKey, $downloadPdf, $logLevel = Log::LOG_LEVEL_DEBUG,  $responseType = SzamlaAgentResponse::RESULT_AS_TEXT, $aggregator = '') {
         $this->setSetting(new SzamlaAgentSetting($username, $password, $apiKey, $downloadPdf, SzamlaAgentSetting::DOWNLOAD_COPIES_COUNT, $responseType, $aggregator));
         $this->setLogLevel($logLevel);
-        $this->setCookieFileName($this->buildCookieFileName());
+        $this->setCookieHandler(new CookieHandler($this));
         $this->writeLog("Számla Agent inicializálása kész (" . (!empty($username) ? 'username: ' . $username : 'apiKey: ' . $apiKey) . ").", Log::LOG_LEVEL_DEBUG);
     }
 
@@ -229,7 +191,6 @@ class SzamlaAgent {
      * @param int    $logLevel    naplózási szint
      *
      * @return SzamlaAgent
-     * @throws SzamlaAgentException
      *
      * @deprecated 2.5 Nem ajánlott a használata, helyette SzamlaAgentAPI::create($apiKey);
      */
@@ -248,9 +209,6 @@ class SzamlaAgent {
         }
     }
 
-    /**
-     * @throws SzamlaAgentException
-     */
     function __destruct() {
         $this->writeLog("Számla Agent műveletek befejezve." . PHP_EOL . str_repeat("_",80) . PHP_EOL, Log::LOG_LEVEL_DEBUG);
     }
@@ -662,24 +620,6 @@ class SzamlaAgent {
     }
 
     /**
-     * Visszaadja a Számla Agent kérés módját
-     *
-     * @return int
-     */
-    public function getCallMethod() {
-        return $this->callMethod;
-    }
-
-    /**
-     * Beállítja a Számla Agent kérés módját
-     *
-     * @param int $callMethod
-     */
-    public function setCallMethod($callMethod) {
-        $this->callMethod = $callMethod;
-    }
-
-    /**
      * @return string
      */
     public function getLogEmail() {
@@ -696,41 +636,8 @@ class SzamlaAgent {
     /**
      * @return string
      */
-    public function getCertificationFileName() {
-        return self::CERTIFICATION_FILENAME;
-    }
-
-    /**
-     * @return string
-     */
-    public function getCertificationFile() {
-        if ($this->getCertificationPath() == self::CERTIFICATION_PATH) {
-            return SzamlaAgentUtil::getAbsPath(self::CERTIFICATION_PATH, $this->getCertificationFileName());
-        } else {
-            return $this->getCertificationPath() . DIRECTORY_SEPARATOR . $this->getCertificationFileName();
-        }
-    }
-
-    /**
-     * @return string
-     */
-    public function getCertificationPath() {
-        return $this->certificationPath;
-    }
-
-    /**
-     * @param   $certificationPath
-     * @example /var/www/new_path/certs
-     */
-    public function setCertificationPath($certificationPath) {
-        $this->certificationPath = $certificationPath;
-    }
-
-    /**
-     * @return string
-     */
     public function getCookieFileName() {
-        return $this->cookieFileName;
+        return $this->cookieHandler->getCookieFileName();
     }
 
     /**
@@ -739,25 +646,10 @@ class SzamlaAgent {
      * Erre akkor van szükség, ha több számlázási fiókhoz használod az Agent API-t.
      * Ebben az esetben számlázási fiókonként beállíthatod a session-hoz tartozó sütit
      *
-     * @see https://docs.szamlazz.hu/#do-i-need-to-handle-session-cookies
-     *
-     * @param string $cookieFile
+     * @param $cookieFile
      */
     public function setCookieFileName($cookieFile) {
-        $this->cookieFileName = $cookieFile;
-    }
-
-    public function buildCookieFileName() {
-        $fileName = 'cookie';
-        $userName = $this->getSetting()->getUsername();
-        $apiKey   = $this->getSetting()->getApiKey();
-
-        if (!empty($userName)) {
-            $fileName .= '_' . hash('sha1', $userName);
-        } else if (!empty($apiKey)) {
-            $fileName .= '_' . hash('sha1', $apiKey);
-        }
-        return $fileName . '.txt';
+        $this->cookieHandler->setCookieFileName($cookieFile);
     }
 
     /**
@@ -1021,8 +913,6 @@ class SzamlaAgent {
      *
      * @param $key
      * @param $value
-     *
-     * @throws SzamlaAgentException
      */
     public function addCustomHTTPHeader($key, $value) {
         if (SzamlaAgentUtil::isNotBlank($key)) {
@@ -1212,7 +1102,6 @@ class SzamlaAgent {
 
     /**
      * @param string  $name
-     * @param string  $type
      * @param string  $url
      * @param array   $authorization
      */
@@ -1250,5 +1139,60 @@ class SzamlaAgent {
      */
     public function getEnvironmentAuthPassword() {
         return ($this->hasEnvironmentAuth() && array_key_exists('password', $this->environment['auth']) ? $this->environment['auth']['password'] : null);
+    }
+
+    /**
+     * Aktuális sütikezelési mód lekérdezése
+     * @return int
+     */
+    public function getCookieHandleMode() {
+        return $this->cookieHandler->getCookieHandleMode();
+    }
+
+    /**
+     * Sütikezelési mód beállítása
+     *
+     * 1. Alapértelmezett mód esetén a főkönyvtárban lesznek tárolva a sütik (CookieHandler::COOKIE_HANDLE_MODE_DEFAULT)
+     * 2. JSON mód használata esetén a cookie mappában lesznek tárolva a sütik (CookieHandler::COOKIE_HANDLE_MODE_JSON)
+     * 3. Adatbázis mód használata esetén a tárolást magadnak kell megvalósítanod (CookieHandler::COOKIE_HANDLE_MODE_DATABASE)
+     *
+     * Fontos! Több számlázási fiókba való számlázás esetén erősen ajánlott az adatbázis mód használata!
+     * Párhuzamos futtatás esetén (pl. cronjob) a JSON módot ne használd - használd helyette az adatbázis módot!
+     *
+     * @param int $cookieHandleMode
+     */
+    public function setCookieHandleMode($cookieHandleMode) {
+        $this->cookieHandler->setCookieHandleMode($cookieHandleMode);
+    }
+
+    /**
+     * A kéréshez tartozó sessionId-t adja vissza, sütikezelési módtól függetlenül.
+     * @return string
+     */
+    public function getCookieSessionId() {
+        return $this->cookieHandler->getCookieSessionId();
+    }
+
+    /**
+     * Session ID beállítása
+     * @param $cookieSessionId
+     * @return void
+     */
+    public function setCookieSessionId($cookieSessionId) {
+        $this->cookieHandler->setCookieSessionId($cookieSessionId);
+    }
+
+    /**
+     * @return CookieHandler
+     */
+    public function getCookieHandler() {
+        return $this->cookieHandler;
+    }
+
+    /**
+     * @param CookieHandler $cookieHandler
+     */
+    protected function setCookieHandler($cookieHandler) {
+        $this->cookieHandler = $cookieHandler;
     }
 }

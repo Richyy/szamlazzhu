@@ -119,7 +119,11 @@ class SzamlaAgentUtil {
     public static function isValidDate($date) {
         $parsedDate = \DateTime::createFromFormat('Y-m-d', $date);
 
-        if (\DateTime::getLastErrors()['warning_count'] > 0 || !checkdate($parsedDate->format("m"), $parsedDate->format("d"), $parsedDate->format("Y"))) {
+        if (is_array(\DateTime::getLastErrors()) && \DateTime::getLastErrors()['warning_count'] > 0) {
+            return false;
+        }
+
+        if (!checkdate($parsedDate->format("m"), $parsedDate->format("d"), $parsedDate->format("Y"))) {
             return false;
         }
 

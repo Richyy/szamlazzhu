@@ -380,7 +380,8 @@ class ReceiptResponse {
      * @return bool|string
      */
     public function getPdfFile() {
-        return base64_decode($this->getPdfData());
+        $pdfData = SzamlaAgentUtil::isNotNull($this->getPdfData()) ? $this->getPdfData() : '';
+        return base64_decode($pdfData);
     }
 
     /**

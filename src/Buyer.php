@@ -83,6 +83,13 @@ class Buyer {
     protected $taxNumber;
 
     /**
+     * Csoport azonosító
+     *
+     * @var string
+     */
+    protected $groupIdentifier;
+
+    /**
      * Vevó EU-s adószáma
      *
      * @var string
@@ -219,6 +226,7 @@ class Buyer {
                 case 'city':
                 case 'address':
                 case 'taxNumber':
+                case 'groupIdentifier':
                 case 'taxNumberEU':
                 case 'postalName':
                 case 'postalCountry':
@@ -269,32 +277,33 @@ class Buyer {
                     "cim"       => $this->getAddress()
                 ];
 
-                if (SzamlaAgentUtil::isNotBlank($this->getEmail()))         $data["email"] = $this->getEmail();
+                if (SzamlaAgentUtil::isNotBlank($this->getEmail()))           $data["email"] = $this->getEmail();
 
                 $data["sendEmail"] = $this->isSendEmail() ? true : false;
 
-                if (SzamlaAgentUtil::isNotBlank($this->getTaxPayer()))      $data["adoalany"] = $this->getTaxPayer();
-                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumber()))     $data["adoszam"] = $this->getTaxNumber();
-                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumberEU()))   $data["adoszamEU"] = $this->getTaxNumberEU();
-                if (SzamlaAgentUtil::isNotBlank($this->getPostalName()))    $data["postazasiNev"] = $this->getPostalName();
-                if (SzamlaAgentUtil::isNotBlank($this->getPostalCountry())) $data["postazasiOrszag"] = $this->getPostalCountry();
-                if (SzamlaAgentUtil::isNotBlank($this->getPostalZip()))     $data["postazasiIrsz"] = $this->getPostalZip();
-                if (SzamlaAgentUtil::isNotBlank($this->getPostalCity()))    $data["postazasiTelepules"] = $this->getPostalCity();
-                if (SzamlaAgentUtil::isNotBlank($this->getPostalAddress())) $data["postazasiCim"] = $this->getPostalAddress();
+                if (SzamlaAgentUtil::isNotBlank($this->getTaxPayer()))        $data["adoalany"] = $this->getTaxPayer();
+                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumber()))       $data["adoszam"] = $this->getTaxNumber();
+                if (SzamlaAgentUtil::isNotBlank($this->getGroupIdentifier())) $data["csoportazonosito"] = $this->getGroupIdentifier();
+                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumberEU()))     $data["adoszamEU"] = $this->getTaxNumberEU();
+                if (SzamlaAgentUtil::isNotBlank($this->getPostalName()))      $data["postazasiNev"] = $this->getPostalName();
+                if (SzamlaAgentUtil::isNotBlank($this->getPostalCountry()))   $data["postazasiOrszag"] = $this->getPostalCountry();
+                if (SzamlaAgentUtil::isNotBlank($this->getPostalZip()))       $data["postazasiIrsz"] = $this->getPostalZip();
+                if (SzamlaAgentUtil::isNotBlank($this->getPostalCity()))      $data["postazasiTelepules"] = $this->getPostalCity();
+                if (SzamlaAgentUtil::isNotBlank($this->getPostalAddress()))   $data["postazasiCim"] = $this->getPostalAddress();
 
                 if (SzamlaAgentUtil::isNotNull($this->getLedgerData())) {
                     $data["vevoFokonyv"] = $this->getLedgerData()->getXmlData();
                 }
 
-                if (SzamlaAgentUtil::isNotBlank($this->getId()))            $data["azonosito"] = $this->getId();
-                if (SzamlaAgentUtil::isNotBlank($this->getSignatoryName())) $data["alairoNeve"] = $this->getSignatoryName();
-                if (SzamlaAgentUtil::isNotBlank($this->getPhone()))         $data["telefonszam"] = $this->getPhone();
-                if (SzamlaAgentUtil::isNotBlank($this->getComment()))       $data["megjegyzes"] = $this->getComment();
+                if (SzamlaAgentUtil::isNotBlank($this->getId()))              $data["azonosito"] = $this->getId();
+                if (SzamlaAgentUtil::isNotBlank($this->getSignatoryName()))   $data["alairoNeve"] = $this->getSignatoryName();
+                if (SzamlaAgentUtil::isNotBlank($this->getPhone()))           $data["telefonszam"] = $this->getPhone();
+                if (SzamlaAgentUtil::isNotBlank($this->getComment()))         $data["megjegyzes"] = $this->getComment();
                 break;
             case $request::XML_SCHEMA_CREATE_REVERSE_INVOICE:
-                if (SzamlaAgentUtil::isNotBlank($this->getEmail()))         $data["email"] = $this->getEmail();
-                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumber()))     $data["adoszam"] = $this->getTaxNumber();
-                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumberEU()))   $data["adoszamEU"] = $this->getTaxNumberEU();
+                if (SzamlaAgentUtil::isNotBlank($this->getEmail()))           $data["email"] = $this->getEmail();
+                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumber()))       $data["adoszam"] = $this->getTaxNumber();
+                if (SzamlaAgentUtil::isNotBlank($this->getTaxNumberEU()))     $data["adoszamEU"] = $this->getTaxNumberEU();
                 break;
             default:
                 throw new SzamlaAgentException("Nincs ilyen XML séma definiálva: {$request->getXmlName()}");
@@ -460,6 +469,20 @@ class Buyer {
      */
     public function setTaxNumber($taxNumber) {
         $this->taxNumber = $taxNumber;
+    }
+
+    /**
+     * @return string
+     */
+    public function getGroupIdentifier() {
+        return $this->groupIdentifier;
+    }
+
+    /**
+     * @param string $groupIdentifier
+     */
+    public function setGroupIdentifier($groupIdentifier) {
+        $this->groupIdentifier = $groupIdentifier;
     }
 
     /**
